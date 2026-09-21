@@ -11,6 +11,7 @@
     "server": "json-server --watch db.json --port 3000"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.103.2",
     "babel-preset-expo": "~55.0.8",
     "expo": "~55.0.0",
     "expo-status-bar": "~55.0.6",

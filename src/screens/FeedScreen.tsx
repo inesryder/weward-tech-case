@@ -1,41 +1,58 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { API_BASE_URL } from '../data/config';
+import { useQuery } from "@tanstack/react-query";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { API_BASE_URL } from "../data/config";
 
-/**
- * This is the screen you'll be building.
- *
- * Three sections, three provider endpoints, one like feature, one tracking event.
- * See the README for the full brief.
- *
- * Replace this placeholder with your implementation. Add folders, files,
- * libraries, and tests as you see fit.
- */
+const fetchProvider = async (provider: string) => {
+  const res = await fetch(`${API_BASE_URL}/${provider}`);
+  if (!res.ok) throw new Error(`Failed to fetch ${provider}`);
+  return res.json();
+};
+
+function ProviderSection({ provider }: { provider: string }) {
+  const { data, error, isPending } = useQuery({
+    queryKey: [provider],
+    queryFn: () => fetchProvider(provider),
+  });
+
+  return (
+    <View style={styles.section}>
+      <Text style={styles.title}>{provider}</Text>
+      {isPending && <Text style={styles.body}>Loading…</Text>}
+      {error && <Text style={styles.error}>{error.message}</Text>}
+      {data && <Text style={styles.body}>{JSON.stringify(data, null, 2)}</Text>}
+    </View>
+  );
+}
+
 export function FeedScreen() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Feed Case</Text>
-      <Text style={styles.body}>Backend: {API_BASE_URL}</Text>
-      <Text style={styles.body}>See README.md for the brief.</Text>
-    </View>
+    <ScrollView contentContainerStyle={styles.container}>
+      <ProviderSection provider="provider-a" />
+      <ProviderSection provider="provider-b" />
+      <ProviderSection provider="provider-c" />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
     padding: 24,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
+  },
+  section: {
+    marginBottom: 32,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '600',
-    marginBottom: 12,
+    fontSize: 18,
+    fontWeight: "600",
+    marginBottom: 8,
   },
   body: {
-    fontSize: 14,
-    color: '#555',
-    marginTop: 4,
+    fontSize: 13,
+    color: "#333",
+  },
+  error: {
+    fontSize: 13,
+    color: "#c00",
   },
 });
