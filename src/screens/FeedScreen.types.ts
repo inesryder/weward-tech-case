@@ -36,3 +36,13 @@ export type ProviderCItem = {
   byline: string;
   section_hint: ProviderCSectionHint;
 };
+
+/*
+
+Created FeedScreen.types.ts. A few notable quirks in the data worth keeping in mind:
+                                                                                                                                                                                                                                                                                                                       
+  - Provider A — title can be null (see a-bad-1)                                                                                                                                                                                                                                                                       
+  - Provider B — media can be null (see b-no-media), and media.alt is optional; ts is a Unix timestamp in seconds; id is not guaranteed unique (duplicate b-100 exists)                                                                                                                                                
+  - Provider C — field is Title (capital T), date_published is YYYY-MM-DD but can be an unparseable string like "yesterday" (see id 9999), and section_hint is a union of known strings or null 
+
+  */
