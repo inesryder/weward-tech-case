@@ -1,18 +1,18 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
-import { Animated, StyleSheet, Text } from "react-native";
+import { useEffect, useSyncExternalStore } from "react";
+import { AccessibilityInfo, Animated, StyleSheet, Text, useAnimatedValue } from "react-native";
 import { dismissToast, toastStore } from "./toastStore";
 
 const VISIBLE_MS = 2500;
 const FADE_MS = 200;
 
-/** Renders the current toast at the bottom of the screen. Mount once, above the app content. */
 export function ToastHost() {
   const toast = useSyncExternalStore(toastStore.subscribe, toastStore.getSnapshot);
-  // Stable for the component's lifetime; lazy state rather than a ref so render stays pure.
-  const [opacity] = useState(() => new Animated.Value(0));
+  const opacity = useAnimatedValue(0);
+  const translateY = opacity.interpolate({ inputRange: [0, 1], outputRange: [12, 0] });
 
   useEffect(() => {
     if (!toast) return;
+    AccessibilityInfo.announceForAccessibility(toast.message);
     opacity.setValue(0);
     const animation = Animated.sequence([
       Animated.timing(opacity, { toValue: 1, duration: FADE_MS, useNativeDriver: true }),
@@ -31,13 +31,7 @@ export function ToastHost() {
     <Animated.View
       pointerEvents="none"
       accessibilityLiveRegion="polite"
-      style={[
-        styles.toast,
-        {
-          opacity,
-          transform: [{ translateY: opacity.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
-        },
-      ]}
+      style={[styles.toast, { opacity, transform: [{ translateY }] }]}
     >
       <Text style={styles.text}>{toast.message}</Text>
     </Animated.View>

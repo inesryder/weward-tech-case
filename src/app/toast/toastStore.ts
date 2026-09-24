@@ -1,4 +1,4 @@
-export type Toast = {
+type Toast = {
   id: number;
   message: string;
 };
@@ -13,7 +13,6 @@ function emit() {
   listeners.forEach((listener) => listener());
 }
 
-/** Shows a short message to the user. A new toast replaces the one on screen. */
 export function showToast(message: string): void {
   current = { id: nextId++, message };
   emit();
