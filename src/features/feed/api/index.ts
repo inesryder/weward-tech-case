@@ -5,4 +5,7 @@ import { ContentProvider } from "./types";
 
 export const CONTENT_PROVIDERS: readonly ContentProvider[] = [providerA, providerB, providerC];
 
-export type { ContentProvider, PageParams, ProviderPage } from "./types";
+export { providerC, fetchProviderCFeatured } from "./providerC";
+export { fetchFeedRound, hasMoreRounds, initialCursors } from "./fetchFeedRound";
+export type { FeedRound, ProviderCursors } from "./fetchFeedRound";
+export type { ContentProvider } from "./types";

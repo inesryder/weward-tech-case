@@ -1,8 +1,6 @@
 import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ProviderId } from "./FeedItem";
-import { CONTENT_PROVIDERS } from "../api";
-import { FeedRound } from "../api/fetchFeedRound";
-import { providerC } from "../api/providerC";
+import { CONTENT_PROVIDERS, FeedRound, providerC } from "../api";
 import { feedRoundsQuery, providerCFeaturedQuery } from "./feedQueries";
 import { buildFeedSections } from "./buildFeed";
 

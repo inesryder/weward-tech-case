@@ -4,7 +4,6 @@ import { ContentProvider } from "./types";
 /** Next page to request per provider. A provider missing from the map has no more pages. */
 export type ProviderCursors = Partial<Record<ProviderId, number>>;
 
-/** One "load more" step: the next page of every provider that still has one. */
 export type FeedRound = {
   items: FeedItem[];
   failedProviders: ProviderId[];
@@ -30,22 +29,25 @@ export async function fetchFeedRound(
   perPage: number,
   signal?: AbortSignal,
 ): Promise<FeedRound> {
-  const active = providers.filter((provider) => cursors[provider.id] !== undefined);
+  const active = providers.flatMap((provider) => {
+    const page = cursors[provider.id];
+    return page === undefined ? [] : [{ provider, page }];
+  });
   const results = await Promise.allSettled(
-    active.map((provider) => provider.fetchPage({ page: cursors[provider.id]!, perPage, signal })),
+    active.map(({ provider, page }) => provider.fetchPage({ page, perPage, signal })),
   );
 
   const round: FeedRound = { items: [], failedProviders: [], nextCursors: {} };
-  results.forEach((result, index) => {
-    const provider = active[index];
-    if (result.status === "fulfilled") {
-      round.items.push(...result.value.items);
-      if (result.value.nextPage !== null) round.nextCursors[provider.id] = result.value.nextPage;
-    } else {
+  for (const [index, result] of results.entries()) {
+    const { provider, page } = active[index];
+    if (result.status === "rejected") {
       round.failedProviders.push(provider.id);
-      round.nextCursors[provider.id] = cursors[provider.id];
+      round.nextCursors[provider.id] = page;
+      continue;
     }
-  });
+    round.items.push(...result.value.items);
+    if (result.value.nextPage !== null) round.nextCursors[provider.id] = result.value.nextPage;
+  }
 
   if (active.length > 0 && round.failedProviders.length === active.length) {
     throw new Error(`All providers failed: ${round.failedProviders.join(", ")}`);

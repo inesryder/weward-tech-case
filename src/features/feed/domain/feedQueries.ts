@@ -1,11 +1,12 @@
 import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
-import { ContentProvider } from "../api";
 import {
+  ContentProvider,
   fetchFeedRound,
+  fetchProviderCFeatured,
   hasMoreRounds,
   initialCursors,
-} from "../api/fetchFeedRound";
-import { fetchProviderCFeatured, providerC } from "../api/providerC";
+  providerC,
+} from "../api";
 
 export const providerQueryKeys = {
   all: ["provider"] as const,
