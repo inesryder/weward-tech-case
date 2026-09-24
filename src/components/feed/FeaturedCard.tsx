@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { FeedItem } from "../../domain/FeedItem";
+import { LikeButton } from "../likes/LikeButton";
 import { ProviderLabel } from "./ProviderLabel";
 
 type Props = {
@@ -24,7 +25,12 @@ function FeaturedCardComponent({ item }: Props) {
         <Text style={styles.title} numberOfLines={2}>
           {item.title}
         </Text>
-        {item.author && <Text style={styles.meta}>{item.author}</Text>}
+        <View style={styles.footer}>
+          <Text style={styles.meta} numberOfLines={1}>
+            {item.author}
+          </Text>
+          <LikeButton itemId={item.id} tone="light" />
+        </View>
       </View>
     </View>
   );
@@ -58,8 +64,14 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#fff",
   },
-  meta: {
+  footer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginTop: 4,
+  },
+  meta: {
+    flex: 1,
     fontSize: 13,
     color: "#ddd",
   },

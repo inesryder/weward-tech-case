@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { FeedItem } from "../../domain/FeedItem";
+import { LikeButton } from "../likes/LikeButton";
 import { ProviderLabel } from "./ProviderLabel";
 
 type Props = {
@@ -19,6 +20,7 @@ function BrowseRowComponent({ item }: Props) {
         </Text>
         {meta.length > 0 && <Text style={styles.meta}>{meta}</Text>}
       </View>
+      <LikeButton itemId={item.id} />
       {item.imageUrl ? (
         <Image
           source={{ uri: item.imageUrl }}

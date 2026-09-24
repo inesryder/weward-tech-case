@@ -16,3 +16,17 @@ export async function fetchJson<T>(path: string, signal?: AbortSignal): Promise<
   if (!res.ok) throw new Error(`GET ${path} failed with ${res.status}`);
   return (await res.json()) as T;
 }
+
+export async function sendJson<T>(
+  method: "POST" | "PATCH",
+  path: string,
+  body: unknown,
+): Promise<T> {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`${method} ${path} failed with ${res.status}`);
+  return (await res.json()) as T;
+}

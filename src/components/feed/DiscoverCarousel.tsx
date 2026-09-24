@@ -1,6 +1,7 @@
 import { memo, useCallback } from "react";
 import { FlatList, Image, ListRenderItem, StyleSheet, Text, View } from "react-native";
 import { FeedItem } from "../../domain/FeedItem";
+import { LikeButton } from "../likes/LikeButton";
 import { ProviderLabel } from "./ProviderLabel";
 
 const CARD_WIDTH = 200;
@@ -23,6 +24,9 @@ function DiscoverCardComponent({ item }: { item: FeedItem }) {
         <Text style={styles.title} numberOfLines={3}>
           {item.title}
         </Text>
+        <View style={styles.actions}>
+          <LikeButton itemId={item.id} />
+        </View>
       </View>
     </View>
   );
@@ -83,6 +87,10 @@ const styles = StyleSheet.create({
   },
   body: {
     padding: 10,
+  },
+  actions: {
+    marginTop: 6,
+    flexDirection: "row",
   },
   title: {
     fontSize: 14,
