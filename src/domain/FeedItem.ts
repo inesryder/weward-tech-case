@@ -15,8 +15,8 @@ export type FeedItem = {
   title: string;
   imageUrl: string | null;
   imageAlt: string | null;
-  /** Null when the provider sent a missing or unparseable date. */
-  publishedAt: Date | null;
+  /** Required: items with a missing or invalid date are dropped during normalization. */
+  publishedAt: Date;
   url: string;
   author: string | null;
   tags: string[];

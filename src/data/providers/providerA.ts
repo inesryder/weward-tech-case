@@ -21,7 +21,8 @@ export function normalizeProviderAItem(raw: ProviderAItem): FeedItem | null {
   const id = asId(raw.id);
   const title = asNonEmptyString(raw.title);
   const url = asNonEmptyString(raw.ctaUrl);
-  if (!id || !title || !url) return null;
+  const publishedAt = asDate(raw.publishedAt);
+  if (!id || !title || !url || !publishedAt) return null;
 
   return {
     id,
@@ -29,7 +30,7 @@ export function normalizeProviderAItem(raw: ProviderAItem): FeedItem | null {
     title,
     imageUrl: asNonEmptyString(raw.image),
     imageAlt: null,
-    publishedAt: asDate(raw.publishedAt),
+    publishedAt,
     url,
     author: asNonEmptyString(raw.author),
     tags: asStringArray(raw.tags),

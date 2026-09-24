@@ -26,7 +26,8 @@ export function normalizeProviderBItem(raw: ProviderBItem): FeedItem | null {
   const id = asId(raw.id);
   const title = asNonEmptyString(raw.headline);
   const url = asNonEmptyString(raw.link);
-  if (!id || !title || !url) return null;
+  const publishedAt = typeof raw.ts === "number" ? asDate(raw.ts * 1000) : null;
+  if (!id || !title || !url || !publishedAt) return null;
 
   return {
     id,
@@ -34,7 +35,7 @@ export function normalizeProviderBItem(raw: ProviderBItem): FeedItem | null {
     title,
     imageUrl: asNonEmptyString(raw.media?.url),
     imageAlt: asNonEmptyString(raw.media?.alt),
-    publishedAt: typeof raw.ts === "number" ? asDate(raw.ts * 1000) : null,
+    publishedAt,
     url,
     author: asNonEmptyString(raw.source),
     tags: [],

@@ -7,7 +7,7 @@ import { ContentProvider } from "./types";
  * Raw provider C schema.
  * Known quirks: `Title` has a capital T; ids are bare numbers (served as strings by
  * json-server) so we namespace them as "c-<id>" to match the likes resource;
- * `date_published` is "YYYY-MM-DD" but can be unparseable (e.g. "yesterday", id 9999).
+ * `date_published` is "YYYY-MM-DD" but can be invalid (e.g. "yesterday", id 9999); such items are dropped.
  */
 export type ProviderCSectionHint = "discover" | "browse" | "featured" | null;
 
@@ -31,7 +31,8 @@ export function normalizeProviderCItem(raw: ProviderCItem): FeedItem | null {
   const rawId = asId(raw.id);
   const title = asNonEmptyString(raw.Title);
   const url = asNonEmptyString(raw.action_url);
-  if (!rawId || !title || !url) return null;
+  const publishedAt = asDate(raw.date_published);
+  if (!rawId || !title || !url || !publishedAt) return null;
 
   return {
     id: `c-${rawId}`,
@@ -39,7 +40,7 @@ export function normalizeProviderCItem(raw: ProviderCItem): FeedItem | null {
     title,
     imageUrl: asNonEmptyString(raw.picture_url),
     imageAlt: null,
-    publishedAt: asDate(raw.date_published),
+    publishedAt,
     url,
     author: asNonEmptyString(raw.byline),
     tags: [],

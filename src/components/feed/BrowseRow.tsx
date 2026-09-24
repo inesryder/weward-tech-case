@@ -8,7 +8,7 @@ type Props = {
 };
 
 function BrowseRowComponent({ item }: Props) {
-  const meta = [item.author, item.publishedAt?.toLocaleDateString()].filter(Boolean).join(" · ");
+  const meta = [item.author, item.publishedAt.toLocaleDateString()].filter(Boolean).join(" · ");
 
   return (
     <View style={styles.row}>
