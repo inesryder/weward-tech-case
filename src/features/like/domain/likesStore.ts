@@ -17,7 +17,7 @@ export type LikesStoreDeps = {
     load: () => Record<string, true>;
     save: (liked: Record<string, true>) => void;
   };
-  onSyncError: (itemId: string) => void;
+  onSyncError: () => void;
   debounceMs: number;
 };
 
@@ -55,9 +55,11 @@ export function createLikesStore(deps: LikesStoreDeps) {
   }
 
   function setConfirmedLiked(itemId: string, liked: boolean) {
-    const { [itemId]: _, ...rest } = confirmedLiked;
-    confirmedLiked = liked ? { ...rest, [itemId]: true } : rest;
-    deps.likedStorage.save(confirmedLiked);
+    const next = { ...confirmedLiked };
+    if (liked) next[itemId] = true;
+    else delete next[itemId];
+    confirmedLiked = next;
+    deps.likedStorage.save(next);
   }
 
   function schedule(itemId: string) {
@@ -82,27 +84,28 @@ export function createLikesStore(deps: LikesStoreDeps) {
     }
 
     inFlight.add(itemId);
+    let saved: ServerLike;
     try {
       const serverLike = await deps.getServerLike(itemId);
-      const target = Math.max(0, (serverLike?.count ?? 0) + (desired ? 1 : -1));
-      const saved = await deps.saveLikeCount({
+      saved = await deps.saveLikeCount({
         itemId,
-        count: target,
+        count: Math.max(0, (serverLike?.count ?? 0) + (desired ? 1 : -1)),
         recordId: serverLike?.recordId,
       });
-      inFlight.delete(itemId);
-      deps.setServerLike(saved);
-      setConfirmedLiked(itemId, desired);
-      // The user may have tapped again while the request was in flight.
-      if (pending.get(itemId) === desired) pending.delete(itemId);
-      else schedule(itemId);
     } catch {
-      inFlight.delete(itemId);
-      clearTimeout(timers.get(itemId));
-      timers.delete(itemId);
       pending.delete(itemId);
-      deps.onSyncError(itemId);
+      deps.onSyncError();
+      notify();
+      return;
+    } finally {
+      inFlight.delete(itemId);
     }
+
+    deps.setServerLike(saved);
+    setConfirmedLiked(itemId, desired);
+    // The user may have tapped again while the request was in flight.
+    if (pending.get(itemId) === desired) pending.delete(itemId);
+    else schedule(itemId);
     notify();
   }
 
@@ -121,5 +124,3 @@ export function createLikesStore(deps: LikesStoreDeps) {
 
   return { isLiked, countDelta, toggle, subscribe };
 }
-
-export type LikesStore = ReturnType<typeof createLikesStore>;

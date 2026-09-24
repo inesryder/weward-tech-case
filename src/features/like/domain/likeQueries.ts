@@ -1,11 +1,7 @@
 import { QueryClient, queryOptions } from "@tanstack/react-query";
-import { ServerLike, ServerLikes } from "./Like";
+import { ServerLike } from "./Like";
 import { fetchLikeCounts } from "../api/likesApi";
 import { likeCountsStorage } from "../api/likesStorage";
-
-export const likesQueryKeys = {
-  counts: ["likes", "counts"] as const,
-};
 
 const LIKES_STALE_TIME_MS = 5 * 60 * 1000;
 
@@ -14,8 +10,8 @@ const LIKES_STALE_TIME_MS = 5 * 60 * 1000;
  * cold start; the cache is marked as infinitely old so it's always refetched on mount.
  * Every successful fetch refreshes the local cache.
  */
-export const likeCountsQuery = queryOptions({
-  queryKey: likesQueryKeys.counts,
+export const serverLikesQuery = queryOptions({
+  queryKey: ["likes"],
   queryFn: async ({ signal }) => {
     const counts = await fetchLikeCounts(signal);
     likeCountsStorage.save(counts);
@@ -28,8 +24,8 @@ export const likeCountsQuery = queryOptions({
 });
 
 /** Records like state confirmed by the server, in the query cache and the local cache. */
-export function setLikeCount(client: QueryClient, like: ServerLike): void {
-  const likes = client.setQueryData<ServerLikes>(likesQueryKeys.counts, (previous) => ({
+export function setServerLike(client: QueryClient, like: ServerLike): void {
+  const likes = client.setQueryData(serverLikesQuery.queryKey, (previous) => ({
     ...previous,
     [like.itemId]: like,
   }));

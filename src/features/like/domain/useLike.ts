@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useSyncExternalStore } from "react";
-import { likeCountsQuery } from "./likeQueries";
+import { serverLikesQuery } from "./likeQueries";
 import { likesStore } from "./likes";
 
 /**
@@ -9,7 +9,7 @@ import { likesStore } from "./likes";
  */
 export function useLike(itemId: string) {
   const { data: serverCount = 0 } = useQuery({
-    ...likeCountsQuery,
+    ...serverLikesQuery,
     select: (likes) => likes[itemId]?.count ?? 0,
   });
   const isLiked = useSyncExternalStore(likesStore.subscribe, () => likesStore.isLiked(itemId));
