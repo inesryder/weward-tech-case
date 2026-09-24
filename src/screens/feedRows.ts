@@ -7,7 +7,7 @@ import { AuthorGroup, FeedSections } from "../features/feed/buildFeed";
  */
 export type FeedRow =
   | { type: "header"; key: string; title: string }
-  | { type: "featured"; key: string; item: FeedItem }
+  | { type: "featured"; key: string; items: FeedItem[] }
   | { type: "browse"; key: string; item: FeedItem }
   | { type: "discover"; key: string; items: FeedItem[] };
 
@@ -29,9 +29,7 @@ export function buildFeedRows(sections: FeedSections): FeedRow[] {
 
   if (sections.featured.length > 0) {
     rows.push({ type: "header", key: "header-featured", title: "Featured" });
-    for (const item of sections.featured) {
-      rows.push({ type: "featured", key: `featured-${item.id}`, item });
-    }
+    rows.push({ type: "featured", key: "featured-carousel", items: sections.featured });
   }
 
   if (sections.browse.length > 0) {

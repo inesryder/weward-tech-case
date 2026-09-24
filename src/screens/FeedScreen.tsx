@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { BrowseRow } from "../components/feed/BrowseRow";
 import { DiscoverCarousel } from "../components/feed/DiscoverCarousel";
-import { FeaturedCard } from "../components/feed/FeaturedCard";
+import { FeaturedCarousel } from "../components/feed/FeaturedCarousel";
 import { useFeed } from "../features/feed/useFeed";
 import { buildFeedRows, FeedRow } from "./feedRows";
 
@@ -35,11 +35,7 @@ export function FeedScreen() {
       case "header":
         return <Text style={styles.sectionTitle}>{row.title}</Text>;
       case "featured":
-        return (
-          <View style={styles.padded}>
-            <FeaturedCard item={row.item} />
-          </View>
-        );
+        return <FeaturedCarousel items={row.items} />;
       case "browse":
         return (
           <View style={styles.padded}>

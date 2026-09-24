@@ -34,7 +34,6 @@ export const FeaturedCard = memo(FeaturedCardComponent);
 
 const styles = StyleSheet.create({
   card: {
-    marginBottom: 16,
     borderRadius: 16,
     overflow: "hidden",
     backgroundColor: "#222",
