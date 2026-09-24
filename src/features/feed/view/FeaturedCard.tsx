@@ -1,4 +1,3 @@
-import { memo } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { FeedItem } from "../domain/FeedItem";
 import { LikeButton } from "../../like/view/LikeButton";
@@ -8,7 +7,7 @@ type Props = {
   item: FeedItem;
 };
 
-function FeaturedCardComponent({ item }: Props) {
+export function FeaturedCard({ item }: Props) {
   return (
     <View style={styles.card}>
       {item.imageUrl ? (
@@ -35,8 +34,6 @@ function FeaturedCardComponent({ item }: Props) {
     </View>
   );
 }
-
-export const FeaturedCard = memo(FeaturedCardComponent);
 
 const styles = StyleSheet.create({
   card: {

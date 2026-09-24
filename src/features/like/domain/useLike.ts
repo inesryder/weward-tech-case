@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import { likeCountsQuery } from "./likeQueries";
 import { likesStore } from "./likes";
 
@@ -15,7 +15,7 @@ export function useLike(itemId: string) {
   const isLiked = useSyncExternalStore(likesStore.subscribe, () => likesStore.isLiked(itemId));
   const delta = useSyncExternalStore(likesStore.subscribe, () => likesStore.countDelta(itemId));
 
-  const toggle = useCallback(() => likesStore.toggle(itemId), [itemId]);
+  const toggle = () => likesStore.toggle(itemId);
 
   return { count: Math.max(0, serverCount + delta), isLiked, toggle };
 }

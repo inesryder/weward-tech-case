@@ -1,4 +1,3 @@
-import { memo, useCallback } from "react";
 import { FlatList, Image, ListRenderItem, StyleSheet, Text, View } from "react-native";
 import { FeedItem } from "../domain/FeedItem";
 import { LikeButton } from "../../like/view/LikeButton";
@@ -7,7 +6,7 @@ import { ProviderLabel } from "./ProviderLabel";
 const CARD_WIDTH = 200;
 const CARD_GAP = 12;
 
-function DiscoverCardComponent({ item }: { item: FeedItem }) {
+function DiscoverCard({ item }: { item: FeedItem }) {
   return (
     <View style={styles.card}>
       {item.imageUrl ? (
@@ -32,19 +31,14 @@ function DiscoverCardComponent({ item }: { item: FeedItem }) {
   );
 }
 
-const DiscoverCard = memo(DiscoverCardComponent);
-
 const keyExtractor = (item: FeedItem) => item.id;
 
 type Props = {
   items: readonly FeedItem[];
 };
 
-function DiscoverCarouselComponent({ items }: Props) {
-  const renderItem: ListRenderItem<FeedItem> = useCallback(
-    ({ item }) => <DiscoverCard item={item} />,
-    [],
-  );
+export function DiscoverCarousel({ items }: Props) {
+  const renderItem: ListRenderItem<FeedItem> = ({ item }) => <DiscoverCard item={item} />;
 
   return (
     <FlatList
@@ -64,8 +58,6 @@ function DiscoverCarouselComponent({ items }: Props) {
     />
   );
 }
-
-export const DiscoverCarousel = memo(DiscoverCarouselComponent);
 
 const styles = StyleSheet.create({
   content: {

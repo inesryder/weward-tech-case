@@ -1,4 +1,3 @@
-import { memo } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 import { FeedItem } from "../domain/FeedItem";
 import { LikeButton } from "../../like/view/LikeButton";
@@ -8,7 +7,7 @@ type Props = {
   item: FeedItem;
 };
 
-function BrowseRowComponent({ item }: Props) {
+export function BrowseRow({ item }: Props) {
   const meta = [item.author, item.publishedAt.toLocaleDateString()].filter(Boolean).join(" · ");
 
   return (
@@ -33,8 +32,6 @@ function BrowseRowComponent({ item }: Props) {
     </View>
   );
 }
-
-export const BrowseRow = memo(BrowseRowComponent);
 
 const styles = StyleSheet.create({
   row: {

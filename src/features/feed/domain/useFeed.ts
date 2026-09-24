@@ -1,5 +1,4 @@
 import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo } from "react";
 import { ProviderId } from "./FeedItem";
 import { CONTENT_PROVIDERS } from "../api";
 import { FeedRound } from "../api/fetchFeedRound";
@@ -25,24 +24,18 @@ export function useFeed() {
   const rounds = useInfiniteQuery(roundsQuery);
   const featured = useQuery(featuredQuery);
 
-  const sections = useMemo(
-    () =>
-      buildFeedSections({
-        featured: featured.data ?? [],
-        rounds: rounds.data?.pages.map((round) => round.items) ?? [],
-        featuredLimit: FEATURED_LIMIT,
-      }),
-    [featured.data, rounds.data],
-  );
+  const sections = buildFeedSections({
+    featured: featured.data ?? [],
+    rounds: rounds.data?.pages.map((round) => round.items) ?? [],
+    featuredLimit: FEATURED_LIMIT,
+  });
 
-  const failedProviders = useMemo(() => {
-    // Only the latest round matters: a provider that failed earlier and has since recovered isn't reported.
-    const latestRound = rounds.data?.pages.at(-1);
-    const failed = new Set<ProviderId>(latestRound?.failedProviders ?? []);
-    if (!rounds.data && rounds.isError) CONTENT_PROVIDERS.forEach((p) => failed.add(p.id));
-    if (featured.isError) failed.add(providerC.id);
-    return [...failed];
-  }, [rounds.data, rounds.isError, featured.isError]);
+  // Only the latest round matters: a provider that failed earlier and has since recovered isn't reported.
+  const latestRound = rounds.data?.pages.at(-1);
+  const failed = new Set<ProviderId>(latestRound?.failedProviders ?? []);
+  if (!rounds.data && rounds.isError) CONTENT_PROVIDERS.forEach((p) => failed.add(p.id));
+  if (featured.isError) failed.add(providerC.id);
+  const failedProviders = [...failed];
 
   const {
     hasNextPage,
@@ -53,23 +46,23 @@ export function useFeed() {
   } = rounds;
   const { refetch: refetchFeatured } = featured;
 
-  const loadMore = useCallback(() => {
+  const loadMore = () => {
     // Don't stack a page load on top of a refresh or another page load.
     if (hasNextPage && !isFetching) fetchNextPage();
-  }, [hasNextPage, isFetching, fetchNextPage]);
+  };
 
   // A failed next page is retried as a page load; a failed first load or refresh is re-fetched.
-  const retry = useCallback(() => {
+  const retry = () => {
     if (isFetching) return;
     if (isFetchNextPageError) fetchNextPage();
     else refetchRounds();
-  }, [isFetching, isFetchNextPageError, fetchNextPage, refetchRounds]);
+  };
 
-  const refresh = useCallback(async () => {
+  const refresh = async () => {
     // Pull-to-refresh restarts pagination from the first round instead of re-fetching every loaded page.
     queryClient.setQueryData(roundsQuery.queryKey, keepFirstRound);
     await Promise.all([refetchRounds(), refetchFeatured()]);
-  }, [queryClient, refetchRounds, refetchFeatured]);
+  };
 
   return {
     sections,

@@ -1,4 +1,4 @@
-import { memo, useCallback, useState } from "react";
+import { useState } from "react";
 import {
   FlatList,
   ListRenderItem,
@@ -20,27 +20,21 @@ type Props = {
   items: readonly FeedItem[];
 };
 
-function FeaturedCarouselComponent({ items }: Props) {
+export function FeaturedCarousel({ items }: Props) {
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = screenWidth - HORIZONTAL_PADDING * 2;
   const interval = cardWidth + CARD_GAP;
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const onScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const index = Math.round(event.nativeEvent.contentOffset.x / interval);
-      setActiveIndex(Math.min(Math.max(index, 0), items.length - 1));
-    },
-    [interval, items.length],
-  );
+  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const index = Math.round(event.nativeEvent.contentOffset.x / interval);
+    setActiveIndex(Math.min(Math.max(index, 0), items.length - 1));
+  };
 
-  const renderItem: ListRenderItem<FeedItem> = useCallback(
-    ({ item }) => (
-      <View style={{ width: cardWidth }}>
-        <FeaturedCard item={item} />
-      </View>
-    ),
-    [cardWidth],
+  const renderItem: ListRenderItem<FeedItem> = ({ item }) => (
+    <View style={{ width: cardWidth }}>
+      <FeaturedCard item={item} />
+    </View>
   );
 
   return (
@@ -63,8 +57,6 @@ function FeaturedCarouselComponent({ items }: Props) {
     </View>
   );
 }
-
-export const FeaturedCarousel = memo(FeaturedCarouselComponent);
 
 function PageIndicator({ count, activeIndex }: { count: number; activeIndex: number }) {
   return (

@@ -1,4 +1,3 @@
-import { useCallback, useMemo } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -29,9 +28,9 @@ export function FeedScreen() {
     retry,
     refresh,
   } = useFeed();
-  const rows = useMemo(() => buildFeedRows(sections), [sections]);
+  const rows = buildFeedRows(sections);
 
-  const renderItem: ListRenderItem<FeedRow> = useCallback(({ item: row }) => {
+  const renderItem: ListRenderItem<FeedRow> = ({ item: row }) => {
     switch (row.type) {
       case "header":
         return <Text style={styles.sectionTitle}>{row.title}</Text>;
@@ -46,7 +45,7 @@ export function FeedScreen() {
       case "discover":
         return <DiscoverCarousel items={row.items} />;
     }
-  }, []);
+  };
 
   if (isLoading) {
     return (

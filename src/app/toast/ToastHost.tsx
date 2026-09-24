@@ -1,4 +1,4 @@
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Animated, StyleSheet, Text } from "react-native";
 import { dismissToast, toastStore } from "./toastStore";
 
@@ -8,7 +8,8 @@ const FADE_MS = 200;
 /** Renders the current toast at the bottom of the screen. Mount once, above the app content. */
 export function ToastHost() {
   const toast = useSyncExternalStore(toastStore.subscribe, toastStore.getSnapshot);
-  const opacity = useRef(new Animated.Value(0)).current;
+  // Stable for the component's lifetime; lazy state rather than a ref so render stays pure.
+  const [opacity] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     if (!toast) return;

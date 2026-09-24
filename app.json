@@ -19,6 +19,9 @@
     },
     "plugins": [
       "./plugins/withPodsMinDeploymentTarget"
-    ]
+    ],
+    "experiments": {
+      "reactCompiler": true
+    }
   }
 }

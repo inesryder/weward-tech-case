@@ -6,7 +6,7 @@ import {
   useRiveBoolean,
   useViewModelInstance,
 } from "@rive-app/react-native";
-import { memo, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useLike } from "../domain/useLike";
 import { useLikeAnimationFile } from "./LikeAnimationProvider";
@@ -24,7 +24,7 @@ type Props = {
   tone?: "dark" | "light";
 };
 
-function LikeButtonComponent({ itemId, tone = "dark" }: Props) {
+export function LikeButton({ itemId, tone = "dark" }: Props) {
   const { count, isLiked, toggle } = useLike(itemId);
   const riveFile = useLikeAnimationFile();
 
@@ -52,8 +52,6 @@ function LikeButtonComponent({ itemId, tone = "dark" }: Props) {
     </Pressable>
   );
 }
-
-export const LikeButton = memo(LikeButtonComponent);
 
 function LikeAnimation({ file, isActive }: { file: RiveFile; isActive: boolean }) {
   // Start the view model in the current state, so already-liked items render
