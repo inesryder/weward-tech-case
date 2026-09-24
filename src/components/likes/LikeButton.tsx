@@ -2,6 +2,7 @@ import {
   Fit,
   RiveFile,
   RiveView,
+  useRive,
   useRiveBoolean,
   useViewModelInstance,
 } from "@rive-app/react-native";
@@ -68,11 +69,16 @@ function LikeAnimation({ file, isActive }: { file: RiveFile; isActive: boolean }
     },
   });
   const { setValue } = useRiveBoolean(IS_ACTIVE, instance);
+  const { riveViewRef, setHybridRef } = useRive();
 
   // The optimistic like state drives the animation, including rolling it back on failure.
   useEffect(() => {
-    if (instance) setValue(isActive);
-  }, [instance, isActive, setValue]);
+    if (!instance) return;
+    setValue(isActive);
+    // Setting a view model property doesn't wake a state machine that has settled
+    // (the native view pauses once idle), so nudge it to play the transition.
+    riveViewRef?.playIfNeeded();
+  }, [instance, isActive, setValue, riveViewRef]);
 
   if (!instance) return null;
 
@@ -82,6 +88,7 @@ function LikeAnimation({ file, isActive }: { file: RiveFile; isActive: boolean }
       artboardName={ARTBOARD}
       stateMachineName={STATE_MACHINE}
       dataBind={instance}
+      hybridRef={setHybridRef}
       autoPlay
       fit={Fit.Contain}
       style={styles.icon}
