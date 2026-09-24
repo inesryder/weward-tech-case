@@ -22,10 +22,11 @@ export function FeedScreen() {
     isLoading,
     isRefreshing,
     isLoadingMore,
-    loadMoreFailed,
+    loadFailed,
     hasMore,
     failedProviders,
     loadMore,
+    retry,
     refresh,
   } = useFeed();
   const rows = useMemo(() => buildFeedRows(sections), [sections]);
@@ -71,16 +72,16 @@ export function FeedScreen() {
             <Text style={styles.error}>Couldn't load: {failedProviders.join(", ")}</Text>
           ) : null
         }
-        ListEmptyComponent={<Text style={styles.empty}>Nothing to show right now.</Text>}
+        ListEmptyComponent={
+          loadFailed ? null : <Text style={styles.empty}>Nothing to show right now.</Text>
+        }
         ListFooterComponent={
-          rows.length > 0 ? (
-            <FeedFooter
-              isLoadingMore={isLoadingMore}
-              loadMoreFailed={loadMoreFailed}
-              hasMore={hasMore}
-              onRetry={loadMore}
-            />
-          ) : null
+          <FeedFooter
+            isLoadingMore={isLoadingMore}
+            loadFailed={loadFailed}
+            showEndOfFeed={!hasMore && rows.length > 0}
+            onRetry={retry}
+          />
         }
       />
     </View>
@@ -89,21 +90,21 @@ export function FeedScreen() {
 
 type FeedFooterProps = {
   isLoadingMore: boolean;
-  loadMoreFailed: boolean;
-  hasMore: boolean;
+  loadFailed: boolean;
+  showEndOfFeed: boolean;
   onRetry: () => void;
 };
 
-function FeedFooter({ isLoadingMore, loadMoreFailed, hasMore, onRetry }: FeedFooterProps) {
+function FeedFooter({ isLoadingMore, loadFailed, showEndOfFeed, onRetry }: FeedFooterProps) {
   if (isLoadingMore) return <ActivityIndicator style={styles.footer} />;
-  if (loadMoreFailed) {
+  if (loadFailed) {
     return (
       <Pressable onPress={onRetry} style={styles.footer}>
-        <Text style={styles.footerText}>Couldn't load more. Tap to retry.</Text>
+        <Text style={styles.footerText}>Couldn't load the feed. Tap to retry.</Text>
       </Pressable>
     );
   }
-  if (!hasMore) {
+  if (showEndOfFeed) {
     return (
       <View style={styles.footer}>
         <Text style={styles.footerText}>You're all caught up.</Text>

@@ -44,13 +44,26 @@ export function useFeed() {
     return [...failed];
   }, [rounds.data, rounds.isError, featured.isError]);
 
-  const { hasNextPage, isFetching, fetchNextPage, refetch: refetchRounds } = rounds;
+  const {
+    hasNextPage,
+    isFetching,
+    isFetchNextPageError,
+    fetchNextPage,
+    refetch: refetchRounds,
+  } = rounds;
   const { refetch: refetchFeatured } = featured;
 
   const loadMore = useCallback(() => {
     // Don't stack a page load on top of a refresh or another page load.
     if (hasNextPage && !isFetching) fetchNextPage();
   }, [hasNextPage, isFetching, fetchNextPage]);
+
+  // A failed next page is retried as a page load; a failed first load or refresh is re-fetched.
+  const retry = useCallback(() => {
+    if (isFetching) return;
+    if (isFetchNextPageError) fetchNextPage();
+    else refetchRounds();
+  }, [isFetching, isFetchNextPageError, fetchNextPage, refetchRounds]);
 
   const refresh = useCallback(async () => {
     // Pull-to-refresh restarts pagination from the first round instead of re-fetching every loaded page.
@@ -60,14 +73,18 @@ export function useFeed() {
 
   return {
     sections,
-    // Show whatever has arrived: one slow or failing provider shouldn't blank the feed.
-    isLoading: rounds.isPending && featured.isPending,
+    // Wait until both requests have settled (success or error), so Featured doesn't pop in
+    // above content the user is already looking at. Individual provider failures inside a
+    // round don't block the feed.
+    isLoading: rounds.isPending || featured.isPending,
     isRefreshing: rounds.isRefetching || featured.isRefetching,
     isLoadingMore: rounds.isFetchingNextPage,
-    loadMoreFailed: rounds.isFetchNextPageError,
+    // Covers a failed first load, refresh, or next page: in each case the user needs a retry.
+    loadFailed: rounds.isError,
     hasMore: hasNextPage,
     failedProviders,
     loadMore,
+    retry,
     refresh,
   };
 }
