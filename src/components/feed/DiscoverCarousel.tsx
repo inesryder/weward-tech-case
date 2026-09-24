@@ -91,6 +91,7 @@ const styles = StyleSheet.create({
   actions: {
     marginTop: 6,
     flexDirection: "row",
+    justifyContent: "flex-end",
   },
   title: {
     fontSize: 14,

@@ -13,14 +13,6 @@ function BrowseRowComponent({ item }: Props) {
 
   return (
     <View style={styles.row}>
-      <View style={styles.text}>
-        <ProviderLabel provider={item.provider} />
-        <Text style={styles.title} numberOfLines={2}>
-          {item.title}
-        </Text>
-        {meta.length > 0 && <Text style={styles.meta}>{meta}</Text>}
-      </View>
-      <LikeButton itemId={item.id} />
       {item.imageUrl ? (
         <Image
           source={{ uri: item.imageUrl }}
@@ -30,6 +22,14 @@ function BrowseRowComponent({ item }: Props) {
       ) : (
         <View style={[styles.image, styles.imagePlaceholder]} />
       )}
+      <View style={styles.text}>
+        <ProviderLabel provider={item.provider} />
+        <Text style={styles.title} numberOfLines={2}>
+          {item.title}
+        </Text>
+        {meta.length > 0 && <Text style={styles.meta}>{meta}</Text>}
+      </View>
+      <LikeButton itemId={item.id} />
     </View>
   );
 }
