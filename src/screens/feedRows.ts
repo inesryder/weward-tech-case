@@ -1,58 +1,53 @@
 import { FeedItem } from "../domain/FeedItem";
-import { FeedSectionKey, FeedSections } from "../features/feed/buildFeed";
+import { AuthorGroup, FeedSections } from "../features/feed/buildFeed";
 
 /**
  * The feed is rendered as one virtualized list of heterogeneous rows, so the
  * whole screen scrolls as a single surface. Each row type maps to one component.
  */
 export type FeedRow =
-  | { type: "header"; key: string; section: FeedSectionKey; title: string }
+  | { type: "header"; key: string; title: string }
   | { type: "featured"; key: string; item: FeedItem }
   | { type: "browse"; key: string; item: FeedItem }
   | { type: "discover"; key: string; items: FeedItem[] };
 
-const SECTION_TITLES: Record<FeedSectionKey, string> = {
-  featured: "Featured",
-  browse: "Browse",
-  discover: "Discover",
-};
-
-const BROWSE_ITEMS_BEFORE_DISCOVER = 10;
-
-function header(section: FeedSectionKey): FeedRow {
-  return { type: "header", key: `header-${section}`, section, title: SECTION_TITLES[section] };
-}
+const BROWSE_ITEMS_BETWEEN_DISCOVER = 10;
 
 function browseRow(item: FeedItem): FeedRow {
   return { type: "browse", key: `browse-${item.id}`, item };
+}
+
+function discoverRows(group: AuthorGroup): FeedRow[] {
+  return [
+    { type: "header", key: `header-discover-${group.author}`, title: `Discover more : ${group.author}` },
+    { type: "discover", key: `discover-${group.author}`, items: group.items },
+  ];
 }
 
 export function buildFeedRows(sections: FeedSections): FeedRow[] {
   const rows: FeedRow[] = [];
 
   if (sections.featured.length > 0) {
-    rows.push(header("featured"));
+    rows.push({ type: "header", key: "header-featured", title: "Featured" });
     for (const item of sections.featured) {
       rows.push({ type: "featured", key: `featured-${item.id}`, item });
     }
   }
 
-  // Discover is slotted inside Browse rather than after it, so Browse can keep
-  // growing at the bottom of the list as more pages are appended.
-  const browseBeforeDiscover = sections.browse.slice(0, BROWSE_ITEMS_BEFORE_DISCOVER);
-  const browseAfterDiscover = sections.browse.slice(BROWSE_ITEMS_BEFORE_DISCOVER);
-
-  if (browseBeforeDiscover.length > 0) {
-    rows.push(header("browse"));
-    rows.push(...browseBeforeDiscover.map(browseRow));
+  if (sections.browse.length > 0) {
+    rows.push({ type: "header", key: "header-browse", title: "Browse" });
   }
 
-  if (sections.discover.length > 0) {
-    rows.push(header("discover"));
-    rows.push({ type: "discover", key: "discover-carousel", items: sections.discover });
-  }
-
-  rows.push(...browseAfterDiscover.map(browseRow));
+  // A Discover carousel is slotted after every full block of Browse items, while
+  // author groups remain. Browse keeps growing at the bottom as pages are appended.
+  let nextGroup = 0;
+  sections.browse.forEach((item, index) => {
+    rows.push(browseRow(item));
+    const endOfBlock = (index + 1) % BROWSE_ITEMS_BETWEEN_DISCOVER === 0;
+    if (endOfBlock && nextGroup < sections.discover.length) {
+      rows.push(...discoverRows(sections.discover[nextGroup++]));
+    }
+  });
 
   return rows;
 }

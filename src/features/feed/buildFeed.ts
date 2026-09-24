@@ -1,26 +1,42 @@
-import { FeedItem, SectionHint } from "../../domain/FeedItem";
+import { FeedItem } from "../../domain/FeedItem";
 
-export type FeedSectionKey = SectionHint;
+export type AuthorGroup = {
+  author: string;
+  items: FeedItem[];
+};
 
-export type FeedSections = Record<FeedSectionKey, FeedItem[]>;
+export type FeedSections = {
+  featured: FeedItem[];
+  browse: FeedItem[];
+  discover: AuthorGroup[];
+};
 
-/** Deterministic string hash (djb2), so an item keeps its section across refreshes and pages. */
-function hashId(id: string): number {
-  let hash = 5381;
-  for (let i = 0; i < id.length; i++) {
-    hash = ((hash << 5) + hash + id.charCodeAt(i)) | 0;
-  }
-  return Math.abs(hash);
-}
+const MIN_ITEMS_PER_AUTHOR_GROUP = 2;
 
 /**
- * Each item lives in exactly one section:
- * - a provider section hint wins (only provider C sends one),
- * - items without a hint are split between Browse and Discover.
+ * Groups items by author, keeping only authors with enough items for a carousel.
+ * Groups are ordered by when they *qualify* (their Nth item is seen), not when
+ * the author first appears, so an author crossing the threshold after more pages
+ * load is appended rather than inserted ahead of groups already on screen.
  */
-export function sectionForItem(item: FeedItem): FeedSectionKey {
-  if (item.sectionHint) return item.sectionHint;
-  return hashId(item.id) % 2 === 0 ? "browse" : "discover";
+export function groupByAuthor(items: readonly FeedItem[]): AuthorGroup[] {
+  const itemsByAuthor = new Map<string, FeedItem[]>();
+  const qualified: AuthorGroup[] = [];
+
+  for (const item of items) {
+    if (!item.author) continue;
+    let authorItems = itemsByAuthor.get(item.author);
+    if (!authorItems) {
+      authorItems = [];
+      itemsByAuthor.set(item.author, authorItems);
+    }
+    authorItems.push(item);
+    if (authorItems.length === MIN_ITEMS_PER_AUTHOR_GROUP) {
+      qualified.push({ author: item.author, items: authorItems });
+    }
+  }
+
+  return qualified;
 }
 
 /**
@@ -28,6 +44,9 @@ export function sectionForItem(item: FeedItem): FeedSectionKey {
  * - Items keep the order they were fetched in and rounds are appended in load
  *   order, so loading more never reorders items already on screen.
  * - Duplicate ids are dropped (first occurrence wins; providers can repeat items).
+ * - Featured: items the provider flags as featured, up to `featuredLimit`.
+ * - Browse: every item not shown in Featured.
+ * - Discover: Browse items grouped by author (an item can be in both).
  */
 export function buildFeedSections({
   featured,
@@ -45,10 +64,12 @@ export function buildFeedSections({
     for (const item of batch) {
       if (seen.has(item.id)) continue;
       seen.add(item.id);
-      sections[sectionForItem(item)].push(item);
+      const isFeatured =
+        item.sectionHint === "featured" && sections.featured.length < featuredLimit;
+      (isFeatured ? sections.featured : sections.browse).push(item);
     }
   }
-  sections.featured = sections.featured.slice(0, featuredLimit);
+  sections.discover = groupByAuthor(sections.browse);
 
   return sections;
 }

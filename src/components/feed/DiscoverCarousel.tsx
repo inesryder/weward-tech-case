@@ -23,11 +23,6 @@ function DiscoverCardComponent({ item }: { item: FeedItem }) {
         <Text style={styles.title} numberOfLines={3}>
           {item.title}
         </Text>
-        {item.author && (
-          <Text style={styles.author} numberOfLines={1}>
-            {item.author}
-          </Text>
-        )}
       </View>
     </View>
   );
@@ -93,10 +88,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#111",
-  },
-  author: {
-    marginTop: 6,
-    fontSize: 12,
-    color: "#666",
   },
 });
