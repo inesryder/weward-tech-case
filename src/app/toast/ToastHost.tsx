@@ -1,12 +1,15 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { AccessibilityInfo, Animated, StyleSheet, Text, useAnimatedValue } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { dismissToast, toastStore } from "./toastStore";
 
 const VISIBLE_MS = 2500;
 const FADE_MS = 200;
+const BOTTOM_SPACING = 16;
 
 export function ToastHost() {
   const toast = useSyncExternalStore(toastStore.subscribe, toastStore.getSnapshot);
+  const { bottom } = useSafeAreaInsets();
   const opacity = useAnimatedValue(0);
   const translateY = opacity.interpolate({ inputRange: [0, 1], outputRange: [12, 0] });
 
@@ -31,7 +34,7 @@ export function ToastHost() {
     <Animated.View
       pointerEvents="none"
       accessibilityLiveRegion="polite"
-      style={[styles.toast, { opacity, transform: [{ translateY }] }]}
+      style={[styles.toast, { bottom: bottom + BOTTOM_SPACING, opacity, transform: [{ translateY }] }]}
     >
       <Text style={styles.text}>{toast.message}</Text>
     </Animated.View>
@@ -43,7 +46,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 16,
     right: 16,
-    bottom: 48,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 10,

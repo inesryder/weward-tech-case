@@ -1,7 +1,7 @@
 import { StyleSheet, Text, TextStyle } from "react-native";
 import { ProviderId } from "../domain/FeedItem";
 
-const PROVIDER_LABELS: Record<ProviderId, string> = {
+export const PROVIDER_LABELS: Record<ProviderId, string> = {
   "provider-a": "Provider A",
   "provider-b": "Provider B",
   "provider-c": "Provider C",

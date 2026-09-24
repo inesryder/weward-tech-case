@@ -1,10 +1,6 @@
 import { FeedItem } from "../domain/FeedItem";
 import { AuthorGroup, FeedSections } from "../domain/feedSections";
 
-/**
- * The feed is rendered as one virtualized list of heterogeneous rows, so the
- * whole screen scrolls as a single surface. Each row type maps to one component.
- */
 export type FeedRow =
   | { type: "header"; key: string; title: string }
   | { type: "featured"; key: string; items: FeedItem[] }
@@ -12,10 +8,6 @@ export type FeedRow =
   | { type: "discover"; key: string; items: FeedItem[] };
 
 const BROWSE_ITEMS_BETWEEN_DISCOVER = 10;
-
-function browseRow(item: FeedItem): FeedRow {
-  return { type: "browse", key: `browse-${item.id}`, item };
-}
 
 function discoverRows(group: AuthorGroup): FeedRow[] {
   return [
@@ -40,7 +32,7 @@ export function buildFeedRows(sections: FeedSections): FeedRow[] {
   // author groups remain. Browse keeps growing at the bottom as pages are appended.
   let nextGroup = 0;
   sections.browse.forEach((item, index) => {
-    rows.push(browseRow(item));
+    rows.push({ type: "browse", key: `browse-${item.id}`, item });
     const endOfBlock = (index + 1) % BROWSE_ITEMS_BETWEEN_DISCOVER === 0;
     if (endOfBlock && nextGroup < sections.discover.length) {
       rows.push(...discoverRows(sections.discover[nextGroup++]));

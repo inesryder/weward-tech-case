@@ -7,11 +7,13 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BrowseRow } from "./BrowseRow";
 import { DiscoverCarousel } from "./DiscoverCarousel";
 import { FeaturedCarousel } from "./FeaturedCarousel";
 import { useFeed } from "../domain/useFeed";
 import { buildFeedRows, FeedRow } from "./feedRows";
+import { PROVIDER_LABELS } from "./ProviderLabel";
 
 const keyExtractor = (row: FeedRow) => row.key;
 
@@ -28,6 +30,7 @@ export function FeedScreen() {
     retry,
     refresh,
   } = useFeed();
+  const { top } = useSafeAreaInsets();
   const rows = buildFeedRows(sections);
 
   const renderItem: ListRenderItem<FeedRow> = ({ item: row }) => {
@@ -37,11 +40,7 @@ export function FeedScreen() {
       case "featured":
         return <FeaturedCarousel items={row.items} />;
       case "browse":
-        return (
-          <View style={styles.padded}>
-            <BrowseRow item={row.item} />
-          </View>
-        );
+        return <BrowseRow item={row.item} />;
       case "discover":
         return <DiscoverCarousel items={row.items} />;
     }
@@ -56,7 +55,7 @@ export function FeedScreen() {
   }
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { paddingTop: top }]}>
       <FlatList
         data={rows}
         keyExtractor={keyExtractor}
@@ -68,7 +67,9 @@ export function FeedScreen() {
         onEndReachedThreshold={0.5}
         ListHeaderComponent={
           failedProviders.length > 0 ? (
-            <Text style={styles.error}>Couldn't load: {failedProviders.join(", ")}</Text>
+            <Text style={styles.error}>
+              Couldn't load: {failedProviders.map((id) => PROVIDER_LABELS[id]).join(", ")}
+            </Text>
           ) : null
         }
         ListEmptyComponent={
@@ -116,14 +117,10 @@ function FeedFooter({ isLoadingMore, loadFailed, showEndOfFeed, onRetry }: FeedF
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    paddingTop: 48,
     backgroundColor: "#fff",
   },
   content: {
     paddingBottom: 32,
-  },
-  padded: {
-    paddingHorizontal: 16,
   },
   sectionTitle: {
     paddingHorizontal: 16,

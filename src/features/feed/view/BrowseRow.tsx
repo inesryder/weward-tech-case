@@ -35,6 +35,7 @@ export function BrowseRow({ item }: Props) {
 
 const styles = StyleSheet.create({
   row: {
+    marginHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 10,
