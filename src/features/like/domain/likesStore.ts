@@ -1,4 +1,4 @@
-import { LikeCount } from "./Like";
+import { ServerLike } from "./Like";
 
 export type LikesStoreDeps = {
   /**
@@ -6,13 +6,13 @@ export type LikesStoreDeps = {
    * Async so it can wait for the server's records before the first write, rather than
    * creating a duplicate record for an item the server already knows.
    */
-  getServerLike: (itemId: string) => Promise<LikeCount | undefined>;
-  setServerLike: (like: LikeCount) => void;
+  getServerLike: (itemId: string) => Promise<ServerLike | undefined>;
+  setServerLike: (like: ServerLike) => void;
   saveLikeCount: (like: {
     itemId: string;
     count: number;
     recordId: string | undefined;
-  }) => Promise<LikeCount>;
+  }) => Promise<ServerLike>;
   likedStorage: {
     load: () => Record<string, true>;
     save: (liked: Record<string, true>) => void;

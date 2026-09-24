@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { LikeCount, LikeCounts } from "../domain/Like";
+import { ServerLike, ServerLikes } from "../domain/Like";
 import { fetchJson, sendJson } from "../../../app/http";
 import { id, parseEach } from "../../../app/parse";
 
@@ -9,19 +9,14 @@ export const likeRecordSchema = z
     itemId: id,
     count: z.number().int().nonnegative(),
   })
-  .transform((raw): LikeCount => ({ itemId: raw.itemId, count: raw.count, recordId: raw.id }));
+  .transform((raw): ServerLike => ({ itemId: raw.itemId, count: raw.count, recordId: raw.id }));
 
-export async function fetchLikeCounts(signal?: AbortSignal): Promise<LikeCounts> {
+export async function fetchLikeCounts(signal?: AbortSignal): Promise<ServerLikes> {
   const records = await fetchJson("/likes", signal);
-  const likes: LikeCounts = {};
+  const likes: ServerLikes = {};
   for (const like of parseEach("likes", likeRecordSchema, records)) {
-    // Keep the first record if the backend holds duplicates for an item, so we
-    // always read and write the same one.
-    if (likes[like.itemId]) {
-      if (__DEV__) console.warn(`[likes] duplicate record for ${like.itemId}`, like);
-      continue;
-    }
-    likes[like.itemId] = like;
+    // The backend can hold duplicates for an item: always use the first one.
+    likes[like.itemId] ??= like;
   }
   return likes;
 }
@@ -39,7 +34,7 @@ export async function saveLikeCount({
   itemId: string;
   count: number;
   recordId: string | undefined;
-}): Promise<LikeCount> {
+}): Promise<ServerLike> {
   const record = recordId
     ? await sendJson("PATCH", `/likes/${encodeURIComponent(recordId)}`, { count })
     : await sendJson("POST", "/likes", { itemId, count });

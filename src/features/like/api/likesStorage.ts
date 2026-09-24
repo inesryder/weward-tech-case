@@ -1,4 +1,4 @@
-import { LikeCounts } from "../domain/Like";
+import { ServerLikes } from "../domain/Like";
 import { readJson, writeJson } from "../../../app/storage";
 
 // Versioned keys: bump if the stored shape changes, so old data is ignored instead of misread.
@@ -7,8 +7,8 @@ const LIKED_KEY = "likes.v1.liked";
 
 /** Last known server like state, shown on cold start while the network catches up. */
 export const likeCountsStorage = {
-  load: (): LikeCounts | undefined => readJson<LikeCounts>(COUNTS_KEY),
-  save: (counts: LikeCounts) => writeJson(COUNTS_KEY, counts),
+  load: (): ServerLikes | undefined => readJson<ServerLikes>(COUNTS_KEY),
+  save: (counts: ServerLikes) => writeJson(COUNTS_KEY, counts),
 };
 
 /**

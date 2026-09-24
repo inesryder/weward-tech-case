@@ -1,5 +1,5 @@
 import { QueryClient, queryOptions } from "@tanstack/react-query";
-import { LikeCount, LikeCounts } from "./Like";
+import { ServerLike, ServerLikes } from "./Like";
 import { fetchLikeCounts } from "../api/likesApi";
 import { likeCountsStorage } from "../api/likesStorage";
 
@@ -28,8 +28,8 @@ export const likeCountsQuery = queryOptions({
 });
 
 /** Records like state confirmed by the server, in the query cache and the local cache. */
-export function setLikeCount(client: QueryClient, like: LikeCount): void {
-  const likes = client.setQueryData<LikeCounts>(likesQueryKeys.counts, (previous) => ({
+export function setLikeCount(client: QueryClient, like: ServerLike): void {
+  const likes = client.setQueryData<ServerLikes>(likesQueryKeys.counts, (previous) => ({
     ...previous,
     [like.itemId]: like,
   }));
