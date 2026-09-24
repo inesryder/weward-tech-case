@@ -142,7 +142,7 @@ npx expo run:ios      # or: npx expo run:android
 
 After the first build, `npm start` is enough to serve JavaScript changes to the installed app. Re-run `npx expo run:ios` whenever native dependencies change.
 
-> **Note on `localhost`:** on a physical device, `localhost` won't resolve to your machine. Either run on a simulator/emulator, or replace `localhost` in `src/data/config.ts` with your machine's LAN IP (e.g. `192.168.1.42`). For Android emulators, use `10.0.2.2`.
+> **Note on `localhost`:** on a physical device, `localhost` won't resolve to your machine. Either run on a simulator/emulator, or replace `localhost` in `src/app/config.ts` with your machine's LAN IP (e.g. `192.168.1.42`). For Android emulators, use `10.0.2.2`.
 
 ---
 
