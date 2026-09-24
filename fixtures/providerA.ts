@@ -1,6 +1,4 @@
-import { ProviderAItem } from "../src/features/feed/api/providerA";
-
-export const providerAData: ProviderAItem[] = [
+export const providerAData = [
   {
     "id": "a-1",
     "title": "Underground gardens of Fresno",

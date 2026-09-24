@@ -1,58 +1,44 @@
+import { z } from "zod";
 import { FeedItem } from "../domain/FeedItem";
-import { fetchJson, JsonServerPage } from "../../../app/http";
-import { asDate, asId, asNonEmptyString, normalizeAll } from "../../../app/parse";
+import { id, optionalString, requiredString } from "../../../app/parse";
+import { fetchProviderPage } from "./fetchProviderPage";
 import { ContentProvider } from "./types";
 
-/**
- * Raw provider B schema.
- * Known quirks: `media` can be null (see "b-no-media") and `media.alt` is optional;
- * `ts` is a Unix timestamp in seconds; ids are not guaranteed unique (duplicate "b-100").
- */
-export type ProviderBMedia = {
-  url: string;
-  alt?: string;
-} | null;
+const media = z
+  .object({ url: optionalString, alt: optionalString })
+  .nullable()
+  .catch(null);
 
-export type ProviderBItem = {
-  id: string;
-  headline: string;
-  media: ProviderBMedia;
-  ts: number; // Unix timestamp (seconds)
-  link: string;
-  source: string;
-};
+const unixSeconds = z
+  .number()
+  .transform((seconds) => seconds * 1000)
+  .pipe(z.coerce.date());
 
-export function normalizeProviderBItem(raw: ProviderBItem): FeedItem | null {
-  const id = asId(raw.id);
-  const title = asNonEmptyString(raw.headline);
-  const url = asNonEmptyString(raw.link);
-  const publishedAt = typeof raw.ts === "number" ? asDate(raw.ts * 1000) : null;
-  if (!id || !title || !url || !publishedAt) return null;
-
-  return {
+export const providerBItemSchema = z
+  .object({
     id,
-    provider: "provider-b",
-    title,
-    imageUrl: asNonEmptyString(raw.media?.url),
-    imageAlt: asNonEmptyString(raw.media?.alt),
-    publishedAt,
-    url,
-    author: asNonEmptyString(raw.source),
-    tags: [],
-    sectionHint: null,
-  };
-}
+    headline: requiredString,
+    media,
+    ts: unixSeconds,
+    link: requiredString,
+    source: optionalString,
+  })
+  .transform(
+    (raw): FeedItem => ({
+      id: raw.id,
+      provider: "provider-b",
+      title: raw.headline,
+      imageUrl: raw.media?.url ?? null,
+      imageAlt: raw.media?.alt ?? null,
+      publishedAt: raw.ts,
+      url: raw.link,
+      author: raw.source,
+      tags: [],
+      sectionHint: null,
+    }),
+  );
 
 export const providerB: ContentProvider = {
   id: "provider-b",
-  async fetchPage({ page, perPage, signal }) {
-    const res = await fetchJson<JsonServerPage<ProviderBItem>>(
-      `/provider-b?_page=${page}&_per_page=${perPage}`,
-      signal,
-    );
-    return {
-      items: normalizeAll("provider-b", res.data, normalizeProviderBItem),
-      nextPage: res.next ?? null,
-    };
-  },
+  fetchPage: (params) => fetchProviderPage("provider-b", providerBItemSchema, params),
 };

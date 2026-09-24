@@ -1,6 +1,4 @@
-import { ProviderCItem } from "../src/features/feed/api/providerC";
-
-export const providerCData: ProviderCItem[] = [
+export const providerCData = [
   {
     "id": "0",
     "Title": "Why airports look the way they do",

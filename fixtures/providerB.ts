@@ -1,6 +1,4 @@
-import { ProviderBItem } from "../src/features/feed/api/providerB";
-
-export const providerBData: ProviderBItem[] = [
+export const providerBData = [
   {
     "id": "b-100",
     "headline": "Lichens: not what you think they are",

@@ -1,32 +1,47 @@
 import { API_BASE_URL } from "./config";
 
-/** Pagination envelope returned by json-server when `_page` / `_per_page` are passed. */
-export type JsonServerPage<T> = {
-  first: number;
-  prev: number | null;
-  next: number | null;
-  last: number;
-  pages: number;
-  items: number;
-  data: T[];
+const REQUEST_TIMEOUT_MS = 10_000;
+
+type RequestOptions = {
+  method?: "GET" | "POST" | "PATCH";
+  body?: unknown;
+  signal?: AbortSignal;
 };
 
-export async function fetchJson<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, { signal });
-  if (!res.ok) throw new Error(`GET ${path} failed with ${res.status}`);
-  return (await res.json()) as T;
+async function request(path: string, { method = "GET", body, signal }: RequestOptions): Promise<unknown> {
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  signal?.addEventListener("abort", abort);
+  if (signal?.aborted) abort();
+
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    abort();
+  }, REQUEST_TIMEOUT_MS);
+
+  try {
+    const res = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      signal: controller.signal,
+      headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`${method} ${path} failed with ${res.status}`);
+    return await res.json();
+  } catch (error) {
+    if (timedOut) throw new Error(`${method} ${path} timed out after ${REQUEST_TIMEOUT_MS}ms`);
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener("abort", abort);
+  }
 }
 
-export async function sendJson<T>(
-  method: "POST" | "PATCH",
-  path: string,
-  body: unknown,
-): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`${method} ${path} failed with ${res.status}`);
-  return (await res.json()) as T;
+export function fetchJson(path: string, signal?: AbortSignal): Promise<unknown> {
+  return request(path, { signal });
+}
+
+export function sendJson(method: "POST" | "PATCH", path: string, body: unknown): Promise<unknown> {
+  return request(path, { method, body });
 }
