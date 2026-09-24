@@ -20,7 +20,7 @@ export function FeaturedCard({ item }: Props) {
         <View style={[styles.image, styles.imagePlaceholder]} />
       )}
       <View style={styles.overlay}>
-        <ProviderLabel provider={item.provider} color="#fff" />
+        <ProviderLabel provider={item.provider} />
         <Text style={styles.title} numberOfLines={2}>
           {item.title}
         </Text>
@@ -28,7 +28,7 @@ export function FeaturedCard({ item }: Props) {
           <Text style={styles.meta} numberOfLines={1}>
             {item.author}
           </Text>
-          <LikeButton itemId={item.id} tone="light" />
+          <LikeButton itemId={item.id} />
         </View>
       </View>
     </View>

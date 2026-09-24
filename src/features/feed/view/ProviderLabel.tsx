@@ -9,11 +9,10 @@ const PROVIDER_LABELS: Record<ProviderId, string> = {
 
 type Props = {
   provider: ProviderId;
-  color?: TextStyle["color"];
 };
 
-export function ProviderLabel({ provider, color = "#3a6ea5" }: Props) {
-  return <Text style={[styles.label, { color }]}>{PROVIDER_LABELS[provider]}</Text>;
+export function ProviderLabel({ provider }: Props) {
+  return <Text style={styles.label}>{PROVIDER_LABELS[provider]}</Text>;
 }
 
 const styles = StyleSheet.create({
@@ -23,5 +22,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.5,
     textTransform: "uppercase",
+    color: "#FF732B",
   },
 });

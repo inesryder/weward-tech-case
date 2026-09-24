@@ -20,11 +20,9 @@ const ICON_SIZE = 32;
 
 type Props = {
   itemId: string;
-  /** "light" for use on dark backgrounds (e.g. image overlays). */
-  tone?: "dark" | "light";
 };
 
-export function LikeButton({ itemId, tone = "dark" }: Props) {
+export function LikeButton({ itemId }: Props) {
   const { count, isLiked, toggle } = useLike(itemId);
   const riveFile = useLikeAnimationFile();
 
@@ -32,7 +30,7 @@ export function LikeButton({ itemId, tone = "dark" }: Props) {
     <Pressable
       onPress={toggle}
       hitSlop={8}
-      style={styles.button}
+      style={[styles.button]}
       accessibilityRole="button"
       accessibilityLabel={isLiked ? "Unlike" : "Like"}
       accessibilityValue={{ text: `${count} likes` }}
@@ -43,17 +41,21 @@ export function LikeButton({ itemId, tone = "dark" }: Props) {
         {riveFile ? (
           <LikeAnimation file={riveFile} isActive={isLiked} />
         ) : (
-          <Text style={[styles.fallbackIcon, tone === "light" && styles.light]}>
-            {isLiked ? "♥" : "♡"}
-          </Text>
+          <Text style={[styles.fallbackIcon]}>{isLiked ? "♥" : "♡"}</Text>
         )}
       </View>
-      <Text style={[styles.count, tone === "light" && styles.light]}>{count}</Text>
+      <Text style={[styles.count]}>{count}</Text>
     </Pressable>
   );
 }
 
-function LikeAnimation({ file, isActive }: { file: RiveFile; isActive: boolean }) {
+function LikeAnimation({
+  file,
+  isActive,
+}: {
+  file: RiveFile;
+  isActive: boolean;
+}) {
   // Start the view model in the current state, so already-liked items render
   // filled without replaying the like animation when they scroll into view.
   const initialIsActive = useRef(isActive);
@@ -101,7 +103,11 @@ const styles = StyleSheet.create({
   button: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 2,
+    // gap: 2,
+    backgroundColor: "#F5F3F5",
+    padding: 2,
+    paddingRight: 6,
+    borderRadius: 32,
   },
   icon: {
     width: ICON_SIZE,
@@ -119,8 +125,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#333",
     fontVariant: ["tabular-nums"],
-  },
-  light: {
-    color: "#fff",
   },
 });

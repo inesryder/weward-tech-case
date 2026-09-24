@@ -1,4 +1,11 @@
-import { FlatList, Image, ListRenderItem, StyleSheet, Text, View } from "react-native";
+import {
+  FlatList,
+  Image,
+  ListRenderItem,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { FeedItem } from "../domain/FeedItem";
 import { LikeButton } from "../../like/view/LikeButton";
 import { ProviderLabel } from "./ProviderLabel";
@@ -19,10 +26,12 @@ function DiscoverCard({ item }: { item: FeedItem }) {
         <View style={[styles.image, styles.imagePlaceholder]} />
       )}
       <View style={styles.body}>
-        <ProviderLabel provider={item.provider} />
-        <Text style={styles.title} numberOfLines={3}>
-          {item.title}
-        </Text>
+        <View>
+          <ProviderLabel provider={item.provider} />
+          <Text style={styles.title} numberOfLines={3}>
+            {item.title}
+          </Text>
+        </View>
         <View style={styles.actions}>
           <LikeButton itemId={item.id} />
         </View>
@@ -38,7 +47,9 @@ type Props = {
 };
 
 export function DiscoverCarousel({ items }: Props) {
-  const renderItem: ListRenderItem<FeedItem> = ({ item }) => <DiscoverCard item={item} />;
+  const renderItem: ListRenderItem<FeedItem> = ({ item }) => (
+    <DiscoverCard item={item} />
+  );
 
   return (
     <FlatList
@@ -79,6 +90,8 @@ const styles = StyleSheet.create({
   },
   body: {
     padding: 10,
+    flexGrow: 1,
+    justifyContent: "space-between",
   },
   actions: {
     marginTop: 6,
