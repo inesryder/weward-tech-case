@@ -1,15 +1,8 @@
-import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ProviderId } from "./FeedItem";
-import { CONTENT_PROVIDERS, FeedRound, providerC } from "../api";
+import { providerC } from "../api";
 import { FEATURED_LIMIT, featuredQuery, feedRoundsQuery } from "./feedQueries";
 import { buildFeedSections } from "./feedSections";
-
-function keepFirstRound<TPageParam>(
-  data: InfiniteData<FeedRound, TPageParam> | undefined,
-): InfiniteData<FeedRound, TPageParam> | undefined {
-  if (!data) return data;
-  return { pages: data.pages.slice(0, 1), pageParams: data.pageParams.slice(0, 1) };
-}
 
 export function useFeed() {
   const queryClient = useQueryClient();
@@ -22,52 +15,39 @@ export function useFeed() {
     featuredLimit: FEATURED_LIMIT,
   });
 
-  // Only the latest round matters: a provider that failed earlier and has since recovered isn't reported.
-  const latestRound = rounds.data?.pages.at(-1);
-  const failed = new Set<ProviderId>(latestRound?.failedProviders ?? []);
-  if (!rounds.data && rounds.isError) CONTENT_PROVIDERS.forEach((p) => failed.add(p.id));
-  if (featured.isError) failed.add(providerC.id);
-  const failedProviders = [...failed];
+  const failedProviders = new Set<ProviderId>(rounds.data?.pages.at(-1)?.failedProviders);
+  if (featured.isError) failedProviders.add(providerC.id);
 
-  const {
-    hasNextPage,
-    isFetching,
-    isFetchNextPageError,
-    fetchNextPage,
-    refetch: refetchRounds,
-  } = rounds;
-  const { refetch: refetchFeatured } = featured;
+  const canLoadMore = rounds.hasNextPage && !rounds.isFetching;
 
   const loadMore = () => {
-    // Don't stack a page load on top of a refresh or another page load.
-    if (hasNextPage && !isFetching) fetchNextPage();
+    if (canLoadMore) rounds.fetchNextPage();
   };
 
-  // A failed next page is retried as a page load; a failed first load or refresh is re-fetched.
   const retry = () => {
-    if (isFetching) return;
-    if (isFetchNextPageError) fetchNextPage();
-    else refetchRounds();
+    if (rounds.isFetching) return;
+    if (rounds.isFetchNextPageError) rounds.fetchNextPage();
+    else rounds.refetch();
   };
 
   const refresh = async () => {
-    // Pull-to-refresh restarts pagination from the first round instead of re-fetching every loaded page.
-    queryClient.setQueryData(feedRoundsQuery.queryKey, keepFirstRound);
-    await Promise.all([refetchRounds(), refetchFeatured()]);
+    queryClient.setQueryData(
+      feedRoundsQuery.queryKey,
+      (data) => data && { pages: data.pages.slice(0, 1), pageParams: data.pageParams.slice(0, 1) },
+    );
+    await Promise.all([rounds.refetch(), featured.refetch()]);
   };
 
   return {
     sections,
     // Wait until both requests have settled (success or error), so Featured doesn't pop in
-    // above content the user is already looking at. Individual provider failures inside a
-    // round don't block the feed.
+    // above content the user is already looking at.
     isLoading: rounds.isPending || featured.isPending,
     isRefreshing: rounds.isRefetching || featured.isRefetching,
     isLoadingMore: rounds.isFetchingNextPage,
-    // Covers a failed first load, refresh, or next page: in each case the user needs a retry.
     loadFailed: rounds.isError,
-    hasMore: hasNextPage,
-    failedProviders,
+    hasMore: rounds.hasNextPage,
+    failedProviders: [...failedProviders],
     loadMore,
     retry,
     refresh,
