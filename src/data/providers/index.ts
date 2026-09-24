@@ -1,0 +1,8 @@
+import { providerA } from "./providerA";
+import { providerB } from "./providerB";
+import { providerC } from "./providerC";
+import { ContentProvider } from "./types";
+
+export const CONTENT_PROVIDERS: readonly ContentProvider[] = [providerA, providerB, providerC];
+
+export type { ContentProvider, PageParams, ProviderPage } from "./types";

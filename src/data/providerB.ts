@@ -1,4 +1,4 @@
-import { ProviderBItem } from "../screens/FeedScreen.types";
+import { ProviderBItem } from "./providers/providerB";
 
 export const providerBData: ProviderBItem[] = [
   {

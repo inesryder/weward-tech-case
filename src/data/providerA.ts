@@ -1,4 +1,4 @@
-import { ProviderAItem } from "../screens/FeedScreen.types";
+import { ProviderAItem } from "./providers/providerA";
 
 export const providerAData: ProviderAItem[] = [
   {
