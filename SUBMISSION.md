@@ -11,8 +11,8 @@ For a detailed walkthrough of the code, see [`TOUR.md`](./TOUR.md).
 ## How to run it
 
 **Prerequisites:** Node 20+, Xcode **26.2 or newer** (required by Expo SDK 55) with an iOS
-simulator. The app uses native modules (Rive, MMKV), so it runs as an Expo **development
-build**, not in Expo Go.
+simulator. The app uses native modules (Rive, MMKV, safe-area-context), so it runs as an Expo
+**development build**, not in Expo Go.
 
 ```bash
 npm install
@@ -39,7 +39,8 @@ npm start
 
 ```
 src/
-  app/        shared infrastructure: http client, runtime guards, MMKV wrapper, query client, toast
+  app/        shared infrastructure: http client, zod field schemas, MMKV wrapper, query client, toast
+  shared/     domain-blind UI components (SnapCarousel)
   features/
     feed/     api/ → domain/ → view/
     like/     api/ → domain/ → view/
@@ -49,19 +50,24 @@ src/
   and storage keys. It returns domain types only.
 - **domain** holds the internal model, business rules, TanStack Query definitions and the hooks
   the view consumes (`useFeed`, `useLike`).
-- **view** only renders; it never fetches or transforms.
+- **view** only renders; it never fetches or transforms. Generic UI that knows nothing about the
+  domain lives in `shared/`.
 
 ### Normalizing at the boundary, per provider
 
-Each provider module owns its raw type and a normalizer to a single `FeedItem`. External data is
-re-validated at runtime (the backend isn't trusted), and:
+Each provider is **one Zod schema**: it validates the raw fields and `.transform`s them into a
+single `FeedItem`. The schema *is* the provider contract, so there is no separate raw type or
+hand-written normalizer to keep in sync. External data is never trusted:
 
-- items missing an id, title, link or a **valid date** are dropped as malformed
-  (`a-bad-1`, `c-9999` with `"yesterday"`, impossible dates like `2026-02-31`);
-- optional fields degrade gracefully (no image → placeholder);
+- items missing an id, title, image, link, author or a **valid date** are dropped as malformed,
+  with Zod's reason logged in dev (`a-bad-1` null title, `b-no-media`, `c-9999` with
+  `"yesterday"`, impossible dates like `2026-02-31`);
+- the only optional field (`imageAlt`) falls back to `null` without dropping the item;
+- dates are strict per provider: ISO 8601 with offset for A, Unix seconds for B, `YYYY-MM-DD`
+  for C (built as a *local* date so it doesn't display a day early west of UTC);
 - provider C's numeric ids are namespaced (`c-3`) so ids are globally unique and match the likes
-  resource; duplicate ids (B's repeated `b-100`) are removed when merging;
-- calendar dates are parsed as local dates, so they don't display a day early west of UTC.
+  resource; duplicate ids (B's repeated `b-100`) are removed when building sections;
+- json-server's page envelope and the like records are validated too, not just feed items.
 
 ### Pagination as a first-class data concern: "rounds"
 
@@ -72,9 +78,12 @@ items keep their fetch order, so **loading more never reorders rows already on s
 Pull-to-refresh trims back to the first round before refetching. This is modelled as a single
 TanStack `infiniteQuery` whose page param is the cursor map.
 
+Every request has a 10 s timeout (a hung backend surfaces as an error instead of an endless
+spinner), and failed queries are retried once before the UI offers "Tap to retry".
+
 ### Sections: same data, different UI
 
-- **Featured:** provider C items flagged `featured`, fetched with a small server-side filtered
+- **Featured:** provider C items flagged as featured, fetched with a small server-side filtered
   query (they rarely appear in the first pages), shown as a paged hero carousel with a dot
   indicator. *(The brief says one card per row; I chose a carousel deliberately.)*
 - **Browse:** every non-featured item, in fetch order, as dense rows. This is the paginated list.
@@ -84,6 +93,7 @@ TanStack `infiniteQuery` whose page param is the cursor map.
 
 The screen is **one virtualized `FlatList`** of typed rows (`header | featured | browse |
 discover`); `buildFeedRows` maps domain sections to rows and each row type maps to one component.
+Both carousels are thin wrappers around a shared, domain-blind `SnapCarousel`.
 Keeping section logic (domain) separate from row layout (view) is what keeps "same data,
 different UI" maintainable.
 
@@ -124,7 +134,8 @@ and shared through context.
 | **expo-dev-client** | Rive and MMKV are native modules, so Expo Go isn't an option. |
 | **React Compiler** | Automatic memoization; no manual `memo` / `useMemo` / `useCallback` in the codebase. |
 | **StyleSheet (no UI kit)** | Fastest path to three visibly different sections without adding a styling dependency. |
-| **No validation library** | Few fields per provider; small hand-written runtime guards (`app/parse.ts`) were enough and keep the boundary explicit. |
+| **Zod 4** | The case is about the external/internal boundary: a schema per provider is both the contract and the validation, transforms normalize in place, and failures explain *why* an item was dropped. Built-ins like `z.iso.date()` replaced hand-written date checks. |
+| **react-native-safe-area-context** | Real safe-area insets for the screen top and the toast, instead of hardcoded offsets. |
 | **Custom toast** | A small store + animated host (~100 lines), no dependency, lives in `app/` as shared infrastructure. |
 
 ---
@@ -182,6 +193,12 @@ and the Rive integration, restructuring the architecture, and writing these docs
   decided where the ambiguous pieces belong: shared code and the toast go in `app/`, Rive stays
   in `like/view` because only the like button uses it, and the reference fixtures move out of
   `src`.
+- *Pair review of the whole codebase.* I reviewed every file with the AI, piece by piece, asking
+  it to explain and challenge the code, and only accepting edits I agreed with. That's where I
+  replaced its hand-written runtime guards with Zod, made author and media required (items
+  without them are malformed), created `src/shared` for domain-blind UI, pushed for
+  self-explanatory names over comments, and turned down changes I judged not worth it for the
+  exercise (e.g. schema-validating MMKV reads, refetch-on-focus).
 
 **What I deliberately wrote by hand, and why.**
 *TODO: fill in — e.g. the final styling of the like button (pill background, colors) and cards,
@@ -195,8 +212,8 @@ which I tuned by eye in the simulator.*
   domain layer once the first render settles, carrying: a view id and session id, timestamp, app
   version, and per section the ordered list of `{ itemId, provider, position }` (plus the author
   for Discover groups), and which providers failed — logged to a local buffer.
-- **Tests.** Move the scripted checks I ran during development (normalizers, rounds, section
-  building, the likes engine) into Jest, and add React Native Testing Library tests for the
+- **Tests.** Move the scripted checks I ran during development (provider schemas, rounds,
+  section building, the likes engine) into Jest, and add React Native Testing Library tests for the
   screen states (loading, partial failure, end of feed, retry).
 - **Likes backend.** Ask for an atomic increment/decrement endpoint (or per-user likes): with
   absolute counts, concurrent likes from different users can be lost.

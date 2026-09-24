@@ -15,6 +15,7 @@ This document walks through the architecture, then each feature and how it works
 | **Runtime** | Expo SDK 55, React Native 0.83 (new architecture), React 19, Hermes |
 | **Build** | Expo development build (`npx expo run:ios`) — native modules rule out Expo Go |
 | **Server state** | TanStack Query v5 (queries, infinite queries, cache as the app's server-state store) |
+| **Validation** | Zod 4 schemas at every trust boundary (provider payloads, like records, page envelopes) |
 | **Local persistence** | `react-native-mmkv` v4 (synchronous key-value storage) |
 | **Animation** | `@rive-app/react-native` (Nitro-based runtime, view-model data binding) |
 | **Rendering perf** | React Compiler (automatic memoization, no manual `memo`/`useMemo`/`useCallback`) |
@@ -39,27 +40,29 @@ npm start               # afterwards, to serve JS to the installed dev build
 
 ```
 src/
-  app/                      infrastructure shared by all features
-    App.tsx                 root: providers, like-count prefetch, toast host
-    config.ts               backend base URL
-    http.ts                 fetchJson / sendJson
-    parse.ts                runtime guards + normalizeAll (used by every normalizer)
-    storage.ts              MMKV wrapper (readJson / writeJson)
-    queryClient.ts          app-wide QueryClient (shared with non-React code)
-    toast/                  toastStore (tiny emitter) + ToastHost (animated view)
+  app/                        infrastructure shared by all features
+    App.tsx                   root: providers, like-count prefetch, toast host
+    config.ts                 backend base URL
+    http.ts                   fetchJson / sendJson over one request() with a 10 s timeout
+    parse.ts                  reusable zod field schemas + parseEach (drops malformed items)
+    storage.ts                MMKV wrapper (readJson / writeJson)
+    queryClient.ts            app-wide QueryClient (retry: 1)
+    toast/                    toastStore (tiny emitter) + ToastHost (animated view)
+  shared/                     domain-blind UI components
+    SnapCarousel.tsx          horizontal snapping carousel used by Featured and Discover
   features/
     feed/
-      api/                  provider schemas, fetching, normalization, pagination rounds
-      domain/               FeedItem model, section building, queries, useFeed
-      view/                 FeedScreen, row model, cards, carousels
+      api/                    provider schemas, page fetching, pagination rounds (index.ts = public entry)
+      domain/                 FeedItem model, feedSections, feedQueries, useFeed
+      view/                   FeedScreen, row model, cards, carousels
     like/
-      api/                  likes REST calls + normalizer, MMKV persistence
-      domain/               Like model, sync engine (likesStore), queries, useLike
-      view/                 LikeButton (Rive), LikeAnimationProvider
-fixtures/                   reference copies of provider data (not used by the app)
-plugins/                    Expo config plugin(s)
-rive-doc/                   design team's Rive file + spec
-assets/animations/          bundled .riv used at runtime
+      api/                    likes REST calls + record schema, MMKV persistence
+      domain/                 ServerLike model, sync engine (likesStore), queries, useLike
+      view/                   LikeButton (Rive), LikeAnimationProvider
+fixtures/                     reference copies of provider data (not used by the app)
+plugins/                      Expo config plugin(s)
+rive-doc/                     design team's Rive file + spec
+assets/animations/            bundled .riv used at runtime
 ```
 
 ### Layers and dependency rule
@@ -69,8 +72,9 @@ Each feature is split into three layers:
 ```mermaid
 flowchart LR
   view["view<br/>(components)"] --> domain["domain<br/>(model, rules, queries, hooks)"]
-  domain --> api["api<br/>(HTTP, raw schemas, normalization, storage)"]
+  domain --> api["api<br/>(HTTP, schemas, normalization, storage)"]
   api -. "produces domain types" .-> domain
+  view --> shared["shared/<br/>(domain-blind UI)"]
   view --> app["app/<br/>(http, parse, storage, toast, queryClient)"]
   domain --> app
   api --> app
@@ -78,10 +82,12 @@ flowchart LR
 
 - **api** is the boundary with the outside world. It knows raw provider schemas, endpoints,
   json-server quirks and MMKV keys. It returns **domain types only** — nothing raw leaks upward.
-- **domain** holds the internal model (`FeedItem`, `LikeCount`), the business rules (how
+  The feed's api exposes itself through `feed/api/index.ts`; the domain imports only from there.
+- **domain** holds the internal model (`FeedItem`, `ServerLike`), the business rules (how
   sections are built, how likes sync), the TanStack Query definitions and the hooks the view
   consumes (`useFeed`, `useLike`).
 - **view** renders. It never fetches or transforms data; it maps domain state to components.
+- **shared** holds UI building blocks that know nothing about the domain.
 - **app** is cross-cutting infrastructure every feature may use.
 
 One cross-feature dependency exists on purpose: feed cards render `like/view/LikeButton`.
@@ -99,46 +105,49 @@ The three endpoints describe the same concept with different shapes:
 | id | `id` (`"a-1"`) | `id` (`"b-100"`, **not unique**) | `id` (bare number) |
 | title | `title` (can be `null`) | `headline` | `Title` (capital T) |
 | image | `image` | `media.url` (`media` can be `null`) | `picture_url` |
-| date | ISO datetime | Unix **seconds** `ts` | `YYYY-MM-DD` (can be `"yesterday"`) |
+| date | ISO datetime with offset | Unix **seconds** `ts` | `YYYY-MM-DD` (can be `"yesterday"`) |
 | link | `ctaUrl` | `link` | `action_url` |
 | author | `author` | `source` | `byline` |
-| extra | `tags` | `media.alt` | `section_hint` |
+| extra | `tags` (unused) | `media.alt` | `section_hint` |
 
 ### 3.2 Normalization (api layer)
 
-Every provider module (`feed/api/providerA.ts`, `providerB.ts`, `providerC.ts`) owns:
+Every provider module (`feed/api/providerA.ts`, `providerB.ts`, `providerC.ts`) is **one Zod
+schema**: `z.object` validates the raw fields, and `.transform` maps them to `FeedItem`. The
+provider itself is one line: `createProvider("provider-a", providerAItemSchema)`.
 
-1. its **raw type** (documenting known quirks),
-2. a **normalizer** `normalizeProviderXItem(raw): FeedItem | null`,
-3. a `ContentProvider` implementation with `fetchPage({ page, perPage, signal })`.
-
-All normalizers produce the same internal model (`feed/domain/FeedItem.ts`):
+All schemas produce the same internal model (`feed/domain/FeedItem.ts`):
 
 ```ts
 type FeedItem = {
-  id: string;              // globally unique: "a-1", "b-100", "c-3" (matches the likes resource)
+  id: string;              // unique across providers: "a-1", "b-100", "c-3" (matches the likes resource)
   provider: ProviderId;
   title: string;
-  imageUrl: string | null;
+  imageUrl: string;
   imageAlt: string | null;
-  publishedAt: Date;       // required
+  publishedAt: Date;
   url: string;
-  author: string | null;
-  tags: string[];
-  sectionHint: "featured" | "browse" | "discover" | null;
+  author: string;
+  featured: boolean;
 };
 ```
 
-Rules applied at the boundary (runtime guards from `app/parse.ts`, since the backend is not trusted):
+Rules applied at the boundary (the backend is not trusted):
 
-- **Required:** id, title, link and a valid date. Items missing any of them are **dropped** as
-  malformed (logged in dev): `a-bad-1` (null title), `c-9999` (`"yesterday"`), impossible
-  dates such as `2026-02-31`.
-- **Optional fields degrade gracefully:** missing image → placeholder, missing alt → none.
-- **Dates:** B's seconds are converted; C's calendar dates are parsed as *local* midnight so
-  they don't display a day early west of UTC.
-- **Ids:** C's numeric ids are namespaced to `c-<id>` so they're unique and match the likes
-  resource. Duplicate ids (e.g. B's repeated `b-100`) are removed when merging.
+- **Required:** id, title, image, link, author and a valid date. An item missing any of them is
+  **dropped** as malformed; in dev, `parseEach` logs Zod's reason (e.g.
+  `expected string, received null → at title`). Dropped from the seed data: `a-bad-1` (null
+  title), `b-no-media` (no image), `c-9999` (`"yesterday"`).
+- **Optional fields** (only `imageAlt` today) fall back to `null` without dropping the item.
+- **Dates:** A must be ISO 8601 with offset (`z.iso.datetime`); B's seconds are converted;
+  C uses `z.iso.date()` (rejects impossible dates like `2026-02-31`) and is built as *local*
+  midnight so it doesn't display a day early west of UTC.
+- **Ids:** C's numeric ids are namespaced to `c-<id>`. Duplicate ids (e.g. B's repeated `b-100`)
+  are removed when building sections.
+- **Featured:** only C's `section_hint === "featured"` matters, so the domain gets a boolean.
+
+Shared page fetching lives in `feed/api/fetchProviderPage.ts`: it builds the query string,
+validates json-server's page envelope (`next`, `data`) with Zod, then parses each item.
 
 ### 3.3 Pagination: rounds (api + domain)
 
@@ -153,21 +162,21 @@ The Browse section loads more as the user scrolls. Pagination is modelled as **r
 - Rounds are appended in order, and items keep their fetch order, so **loading more never
   reorders rows already on screen** (no flicker).
 
-In the domain layer, `feedRoundsQuery` (`feed/domain/feedQueries.ts`) is a TanStack
+In the domain layer, `feedRoundsQuery` (`feed/domain/feedQueries.ts`) is a ready-made TanStack
 `infiniteQuery` where each page is one round and the page param is the cursor map.
 
-Featured items come from a separate small query, `providerCFeaturedQuery`, which asks provider C
-for its featured items server-side (`?section_hint=featured`) — they are sparse and rarely
-appear in the first pages.
+Featured items come from a separate small query, `featuredQuery`, which asks provider C for its
+featured items server-side (`?section_hint=featured`) — they are sparse and rarely appear in the
+first pages.
 
 ### 3.4 Building the sections (domain)
 
-`buildFeedSections` (`feed/domain/buildFeed.ts`) turns featured items + rounds into:
+`buildFeedSections` (`feed/domain/feedSections.ts`) turns featured items + rounds into:
 
 | Section | Content |
 |---|---|
-| **Featured** | Items flagged `section_hint: "featured"` (provider C), up to 5 |
-| **Browse** | Every other item, in fetch order (C's `browse`/`discover` hints are ignored) |
+| **Featured** | Items with `featured: true` (provider C), up to 5 |
+| **Browse** | Every other item, in fetch order |
 | **Discover** | Browse items **grouped by author**; an author needs ≥ 2 items to get a group |
 
 An item can appear both in Browse and in its author's Discover group. Author groups are ordered
@@ -179,10 +188,10 @@ is appended rather than inserted ahead of groups already on screen.
 `useFeed` combines both queries and exposes everything the screen needs:
 
 - `sections`, `isLoading` (waits for both queries to settle so Featured doesn't pop in later),
-- `loadMore` (guarded: no page load during a refresh or another page load),
-- `refresh` (pull-to-refresh trims to the first round, then refetches — pagination restarts),
+- `loadMore` (only when `canLoadMore`: there is a next page and nothing is already fetching),
+- `refresh` (pull-to-refresh trims the cache to the first round, then refetches),
 - `retry` (retries a failed next page, or refetches after a failed first load/refresh),
-- `isLoadingMore`, `loadFailed`, `hasMore`, `failedProviders` (partial failures).
+- `isLoadingMore`, `loadFailed` (total failure), `hasMore`, `failedProviders` (partial failures).
 
 ### 3.6 Rendering (view)
 
@@ -201,7 +210,7 @@ Layout of the list:
 
 ```
 Featured            ← header
-[ hero carousel ]   ← FeaturedCarousel (paged, with dot indicator)
+[ hero carousel ]   ← FeaturedCarousel (one card per swipe, dot indicator)
 Browse              ← header
 row 1 … row 10      ← BrowseRow
 Discover more : <author A>   ← header
@@ -217,13 +226,18 @@ so Browse can keep growing at the end of the list. Each row type maps to one com
 
 | Component | Look |
 |---|---|
-| `FeaturedCarousel` + `FeaturedCard` | Full-width, image-forward hero cards, snap paging, dot indicator |
+| `FeaturedCarousel` + `FeaturedCard` | Full-width, image-forward hero cards, one per swipe, accessible dot indicator |
 | `BrowseRow` | Dense text-forward row: thumbnail left, text, like button right |
-| `DiscoverCarousel` | Horizontal carousel of medium cards, like button bottom-right |
-| `ProviderLabel` | Small uppercase provider tag shared by all cards |
+| `DiscoverCarousel` | Horizontal carousel of medium cards (equal height), like button bottom-right |
+| `ProviderLabel` | Small uppercase provider tag shared by all cards; also exports display names |
 
-The footer reflects pagination state: spinner while loading more, "Tap to retry" on failure,
-"You're all caught up." when every provider is exhausted.
+Both carousels are thin wrappers around `shared/SnapCarousel`, which owns the horizontal
+snapping `FlatList`, item width, spacing and the scroll → index calculation.
+
+The top of the screen respects the safe area. A header lists partially failed providers by
+display name; the footer shows a spinner while loading more, "Tap to retry" on failure, and
+"You're all caught up." when every provider is exhausted. Images render with a background color,
+which doubles as their loading placeholder.
 
 ---
 
@@ -232,12 +246,15 @@ The footer reflects pagination state: spinner while loading more, "Tap to retry"
 ### 4.1 Backend contract
 
 `GET /likes` returns records `{ id, itemId, count }`. Writes are plain REST: `PATCH /likes/:id`
-sets the count, `POST /likes` creates a record. Two facts shape the design:
+sets the count, `POST /likes` creates a record. Three facts shape the design:
 
 - **State-based, no atomic increment** — the client computes and writes the absolute count.
 - **No per-user data** — "liked by me" only exists on the device.
 - json-server **ignores the id sent on POST** and generates one, so the record id is tracked
-  separately from the item id (`LikeCount.recordId`).
+  separately from the item id (`ServerLike.recordId`).
+
+Records are validated with a Zod schema; if the backend holds duplicates for an item, the first
+record wins.
 
 ### 4.2 State model (domain)
 
@@ -246,7 +263,7 @@ are merged:
 
 | Source | Where | Persisted |
 |---|---|---|
-| Server count + record id | `likeCountsQuery` (TanStack Query cache) | MMKV `likes.v2.counts` |
+| Server count + record id | `serverLikesQuery` (TanStack Query cache) | MMKV `likes.v2.counts` |
 | Confirmed "liked by me" | `likesStore` | MMKV `likes.v1.liked` |
 | Pending taps | `likesStore` (in memory) | no |
 
@@ -270,7 +287,7 @@ sequenceDiagram
   U->>S: toggle(itemId)
   S-->>U: pending state (instant UI + animation)
   Note over S: 400 ms debounce (per item)
-  S->>Q: server like (waits for /likes if not loaded)
+  S->>Q: server like (fetches /likes only if nothing is cached)
   S->>B: PATCH /likes/:recordId {count} or POST /likes
   alt success
     B-->>S: record
@@ -286,20 +303,22 @@ sequenceDiagram
   sends nothing.
 - **Taps during a request:** the engine re-checks when the request settles and sends a follow-up
   if the desired state changed.
-- **Failure:** pending state is dropped (UI and animation revert) and a toast is shown.
+- **Failure:** only the network calls are inside the `try`, so a network failure (or a malformed
+  response) reverts the pending state and shows a toast, while a bug in the success handling
+  surfaces as a real error instead of a misleading "couldn't save" toast.
 - **Only confirmed state is persisted:** a like that never reached the server isn't resurrected
   on the next launch.
-- **No duplicates:** writes use the known record ids (cached or fetched). When nothing is cached
-  yet (first launch), the engine waits for `/likes` (`ensureQueryData`) before writing, so it
-  never POSTs a record that already exists.
+- **No duplicates:** writes use the known record ids. When nothing is cached yet (first launch),
+  the engine reads the likes with `queryClient.query({ ..., staleTime: "static" })`, which
+  fetches `/likes` before writing, so it never POSTs a record that already exists.
 
 ### 4.4 Startup and persistence
 
-- `likeCountsQuery` uses MMKV as `initialData`, so counts render immediately on cold start —
+- `serverLikesQuery` uses MMKV as `initialData`, so counts render immediately on cold start —
   no blink to zero.
 - The seed is marked as infinitely old (`initialDataUpdatedAt: 0`), so it's refetched on launch
-  and server values replace cached ones (reconciliation). `App.tsx` prefetches it in parallel
-  with the feed.
+  and server values replace cached ones (reconciliation). `App.tsx` starts that fetch
+  (`queryClient.query`) in parallel with the feed.
 - A 5-minute `staleTime` prevents a refetch every time a like button mounts while scrolling.
 
 ### 4.5 `useLike` and the button (view)
@@ -318,7 +337,7 @@ state, so liking an item in Browse updates it in Discover and Featured too.
 - After setting the property, it calls `playIfNeeded()`: the native view pauses once the state
   machine settles, and a view-model change alone doesn't wake it.
 - `LikeAnimationProvider` loads the `.riv` file **once** for the whole app and shares it via
-  context; a text heart is shown as fallback while it loads.
+  context; an orange text heart is shown as fallback while it loads.
 
 Known limitation: the Rive file only reaches its "liked" state through the tap animation (with
 sound), so an already-liked item plays it when it mounts. Fixing this needs a design change in
@@ -326,15 +345,23 @@ the file (instant `isActive` transitions + a separate `tap` trigger for the anim
 
 ---
 
-## 5. Shared infrastructure (`src/app`)
+## 5. Shared infrastructure
+
+### `src/app`
 
 | Module | Role |
 |---|---|
-| `http.ts` | `fetchJson` (GET with abort signal) and `sendJson` (POST/PATCH); non-2xx → throws |
-| `parse.ts` | `asId`, `asNonEmptyString`, `asDate`, `asStringArray`, `normalizeAll` (drops + logs malformed items) |
+| `http.ts` | `fetchJson` (GET) and `sendJson` (POST/PATCH) over one `request()`: returns `unknown` (Zod types it), throws on non-2xx, **10 s timeout** that respects the caller's abort signal |
+| `parse.ts` | Zod field schemas (`requiredString`, `optionalString`, `id`) and `parseEach` (drops + logs malformed items) |
 | `storage.ts` | Single MMKV instance, JSON helpers; corrupted entries are discarded instead of crashing |
-| `queryClient.ts` | One `QueryClient`, used by React and by the likes engine |
-| `toast/` | `showToast(message)` emitter + `ToastHost` (fade/slide, auto-dismiss ~2.5 s, polite live region) |
+| `queryClient.ts` | One `QueryClient` (queries retry once), used by React and by the likes engine |
+| `toast/` | `showToast(message)` emitter + `ToastHost` (fade/slide above the bottom safe area, auto-dismiss ~2.5 s, announced to VoiceOver and Android screen readers) |
+
+### `src/shared`
+
+| Component | Role |
+|---|---|
+| `SnapCarousel` | Generic horizontal carousel: item width, snapping (optionally one item per swipe), spacing, and `onIndexChange` |
 
 ---
 
@@ -343,6 +370,8 @@ the file (instant `isActive` transitions + a separate `tap` trigger for the anim
 - **React Compiler** is enabled in `app.json` (`experiments.reactCompiler`). All components and
   hooks compile; there is no manual `memo`/`useMemo`/`useCallback` in the codebase.
 - **Metro** bundles `.riv` files as assets (`metro.config.js`).
+- **Safe area** insets come from `react-native-safe-area-context` (native module: rebuild after
+  installing).
 - **Config plugin** `plugins/withPodsMinDeploymentTarget.js` raises pods declaring iOS < 15.1
   (RiveRuntime's privacy bundle) so Xcode 27 builds; it survives `expo prebuild --clean`.
 - `ios/` is generated (`expo prebuild`) and git-ignored.
@@ -362,4 +391,4 @@ the file (instant `isActive` transitions + a separate `tap` trigger for the anim
 - **Leftover Discover groups:** an author group only shows when enough Browse items exist to
   reach its slot.
 - **No automated test suite:** logic was verified with scripted checks (sync engine, rounds,
-  normalizers) during development.
+  schemas, query behavior) during development.
