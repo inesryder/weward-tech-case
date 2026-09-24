@@ -1,22 +1,12 @@
 import { z } from "zod";
 import { FeedItem } from "../domain/FeedItem";
 import { id, optionalString, requiredString } from "../../../app/parse";
-import { fetchProviderPage } from "./fetchProviderPage";
-import { ContentProvider } from "./types";
+import { createProvider, fetchProviderPage } from "./fetchProviderPage";
 
-const calendarDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .transform((value, ctx) => {
-    const [year, month, day] = value.split("-").map(Number);
-    const date = new Date(year, month - 1, day);
-    const rolledOver = date.getMonth() !== month - 1 || date.getDate() !== day;
-    if (rolledOver) {
-      ctx.issues.push({ code: "custom", message: "Not a real calendar date", input: value });
-      return z.NEVER;
-    }
-    return date;
-  });
+const calendarDate = z.iso.date().transform((value) => {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+});
 
 const sectionHint = z.enum(["featured", "browse", "discover"]).nullable().catch(null);
 
@@ -45,10 +35,7 @@ export const providerCItemSchema = z
     }),
   );
 
-export const providerC: ContentProvider = {
-  id: "provider-c",
-  fetchPage: (params) => fetchProviderPage("provider-c", providerCItemSchema, params),
-};
+export const providerC = createProvider("provider-c", providerCItemSchema);
 
 export async function fetchProviderCFeatured({
   limit,

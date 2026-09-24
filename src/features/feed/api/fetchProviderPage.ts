@@ -2,7 +2,7 @@ import { z } from "zod";
 import { fetchJson } from "../../../app/http";
 import { parseEach } from "../../../app/parse";
 import { FeedItem, ProviderId } from "../domain/FeedItem";
-import { PageParams, ProviderPage } from "./types";
+import { ContentProvider, PageParams, ProviderPage } from "./types";
 
 const jsonServerPage = z.object({
   next: z.number().int().positive().nullable().catch(null),
@@ -27,4 +27,8 @@ export async function fetchProviderPage(
     items: parseEach(providerId, itemSchema, response.data),
     nextPage: response.next,
   };
+}
+
+export function createProvider(id: ProviderId, itemSchema: z.ZodType<FeedItem>): ContentProvider {
+  return { id, fetchPage: (params) => fetchProviderPage(id, itemSchema, params) };
 }

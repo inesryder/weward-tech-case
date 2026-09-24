@@ -1,15 +1,16 @@
 import { z } from "zod";
 import { FeedItem } from "../domain/FeedItem";
-import { dateString, id, optionalString, requiredString, stringList } from "../../../app/parse";
-import { fetchProviderPage } from "./fetchProviderPage";
-import { ContentProvider } from "./types";
+import { id, optionalString, requiredString, stringList } from "../../../app/parse";
+import { createProvider } from "./fetchProviderPage";
+
+const isoDateTime = z.iso.datetime({ offset: true }).transform((value) => new Date(value));
 
 export const providerAItemSchema = z
   .object({
     id,
     title: requiredString,
     image: optionalString,
-    publishedAt: dateString,
+    publishedAt: isoDateTime,
     ctaUrl: requiredString,
     author: optionalString,
     tags: stringList,
@@ -29,7 +30,4 @@ export const providerAItemSchema = z
     }),
   );
 
-export const providerA: ContentProvider = {
-  id: "provider-a",
-  fetchPage: (params) => fetchProviderPage("provider-a", providerAItemSchema, params),
-};
+export const providerA = createProvider("provider-a", providerAItemSchema);

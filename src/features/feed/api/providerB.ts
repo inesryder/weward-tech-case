@@ -1,8 +1,7 @@
 import { z } from "zod";
 import { FeedItem } from "../domain/FeedItem";
 import { id, optionalString, requiredString } from "../../../app/parse";
-import { fetchProviderPage } from "./fetchProviderPage";
-import { ContentProvider } from "./types";
+import { createProvider } from "./fetchProviderPage";
 
 const media = z
   .object({ url: optionalString, alt: optionalString })
@@ -38,7 +37,4 @@ export const providerBItemSchema = z
     }),
   );
 
-export const providerB: ContentProvider = {
-  id: "provider-b",
-  fetchPage: (params) => fetchProviderPage("provider-b", providerBItemSchema, params),
-};
+export const providerB = createProvider("provider-b", providerBItemSchema);

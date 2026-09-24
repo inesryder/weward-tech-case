@@ -6,8 +6,6 @@ export const optionalString = requiredString.nullable().catch(null);
 
 export const id = z.union([requiredString, z.number().transform(String)]);
 
-export const dateString = z.string().pipe(z.coerce.date());
-
 export const stringList = z
   .array(optionalString)
   .catch([])
