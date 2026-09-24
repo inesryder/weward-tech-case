@@ -1,17 +1,10 @@
-import {
-  FlatList,
-  Image,
-  ListRenderItem,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
+import { SnapCarousel } from "../../../shared/SnapCarousel";
 import { FeedItem } from "../domain/FeedItem";
 import { LikeButton } from "../../like/view/LikeButton";
 import { ProviderLabel } from "./ProviderLabel";
 
 const CARD_WIDTH = 200;
-const CARD_GAP = 12;
 
 function DiscoverCard({ item }: { item: FeedItem }) {
   return (
@@ -36,49 +29,30 @@ function DiscoverCard({ item }: { item: FeedItem }) {
   );
 }
 
-const keyExtractor = (item: FeedItem) => item.id;
-
 type Props = {
   items: readonly FeedItem[];
 };
 
 export function DiscoverCarousel({ items }: Props) {
-  const renderItem: ListRenderItem<FeedItem> = ({ item }) => (
-    <DiscoverCard item={item} />
-  );
-
   return (
-    <FlatList
-      horizontal
-      data={items}
-      keyExtractor={keyExtractor}
-      renderItem={renderItem}
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.content}
-      snapToInterval={CARD_WIDTH + CARD_GAP}
-      decelerationRate="fast"
-      getItemLayout={(_, index) => ({
-        length: CARD_WIDTH + CARD_GAP,
-        offset: (CARD_WIDTH + CARD_GAP) * index,
-        index,
-      })}
+    <SnapCarousel
+      items={items}
+      itemWidth={CARD_WIDTH}
+      keyExtractor={(item) => item.id}
+      renderItem={(item) => <DiscoverCard item={item} />}
     />
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    paddingHorizontal: 16,
-    gap: CARD_GAP,
-  },
   card: {
-    width: CARD_WIDTH,
+    flex: 1,
     borderRadius: 12,
     overflow: "hidden",
     backgroundColor: "#f3f1ec",
   },
   image: {
-    width: CARD_WIDTH,
+    width: "100%",
     height: 130,
     backgroundColor: "#ddd",
   },

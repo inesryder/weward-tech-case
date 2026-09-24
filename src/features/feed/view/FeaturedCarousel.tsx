@@ -1,20 +1,8 @@
 import { useState } from "react";
-import {
-  FlatList,
-  ListRenderItem,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  StyleSheet,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
+import { CAROUSEL_PADDING, SnapCarousel } from "../../../shared/SnapCarousel";
 import { FeedItem } from "../domain/FeedItem";
 import { FeaturedCard } from "./FeaturedCard";
-
-const HORIZONTAL_PADDING = 16;
-const CARD_GAP = 12;
-
-const keyExtractor = (item: FeedItem) => item.id;
 
 type Props = {
   items: readonly FeedItem[];
@@ -22,36 +10,17 @@ type Props = {
 
 export function FeaturedCarousel({ items }: Props) {
   const { width: screenWidth } = useWindowDimensions();
-  const cardWidth = screenWidth - HORIZONTAL_PADDING * 2;
-  const interval = cardWidth + CARD_GAP;
   const [activeIndex, setActiveIndex] = useState(0);
-
-  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const index = Math.round(event.nativeEvent.contentOffset.x / interval);
-    setActiveIndex(Math.min(Math.max(index, 0), items.length - 1));
-  };
-
-  const renderItem: ListRenderItem<FeedItem> = ({ item }) => (
-    <View style={{ width: cardWidth }}>
-      <FeaturedCard item={item} />
-    </View>
-  );
 
   return (
     <View>
-      <FlatList
-        horizontal
-        data={items}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.content}
-        snapToInterval={interval}
-        decelerationRate="fast"
-        disableIntervalMomentum
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        getItemLayout={(_, index) => ({ length: interval, offset: interval * index, index })}
+      <SnapCarousel
+        items={items}
+        itemWidth={screenWidth - CAROUSEL_PADDING * 2}
+        keyExtractor={(item) => item.id}
+        renderItem={(item) => <FeaturedCard item={item} />}
+        onePerSwipe
+        onIndexChange={setActiveIndex}
       />
       {items.length > 1 && <PageIndicator count={items.length} activeIndex={activeIndex} />}
     </View>
@@ -60,7 +29,7 @@ export function FeaturedCarousel({ items }: Props) {
 
 function PageIndicator({ count, activeIndex }: { count: number; activeIndex: number }) {
   return (
-    <View style={styles.dots} accessibilityLabel={`Item ${activeIndex + 1} of ${count}`}>
+    <View style={styles.dots} accessible accessibilityLabel={`Item ${activeIndex + 1} of ${count}`}>
       {Array.from({ length: count }, (_, index) => (
         <View key={index} style={[styles.dot, index === activeIndex && styles.dotActive]} />
       ))}
@@ -69,10 +38,6 @@ function PageIndicator({ count, activeIndex }: { count: number; activeIndex: num
 }
 
 const styles = StyleSheet.create({
-  content: {
-    paddingHorizontal: HORIZONTAL_PADDING,
-    gap: CARD_GAP,
-  },
   dots: {
     flexDirection: "row",
     justifyContent: "center",
