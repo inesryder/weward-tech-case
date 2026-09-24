@@ -23,7 +23,6 @@ function groupByAuthor(items: readonly FeedItem[]): AuthorGroup[] {
   const groups: AuthorGroup[] = [];
 
   for (const item of items) {
-    if (!item.author) continue;
     const authorItems = itemsByAuthor.get(item.author) ?? [];
     itemsByAuthor.set(item.author, authorItems);
     authorItems.push(item);

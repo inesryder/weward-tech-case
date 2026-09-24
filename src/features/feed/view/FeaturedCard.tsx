@@ -10,15 +10,11 @@ type Props = {
 export function FeaturedCard({ item }: Props) {
   return (
     <View style={styles.card}>
-      {item.imageUrl ? (
-        <Image
-          source={{ uri: item.imageUrl }}
-          accessibilityLabel={item.imageAlt ?? undefined}
-          style={styles.image}
-        />
-      ) : (
-        <View style={[styles.image, styles.imagePlaceholder]} />
-      )}
+      <Image
+        source={{ uri: item.imageUrl }}
+        accessibilityLabel={item.imageAlt ?? undefined}
+        style={styles.image}
+      />
       <View style={styles.overlay}>
         <ProviderLabel provider={item.provider} />
         <Text style={styles.title} numberOfLines={2}>
@@ -44,8 +40,6 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     aspectRatio: 4 / 3,
-  },
-  imagePlaceholder: {
     backgroundColor: "#444",
   },
   overlay: {

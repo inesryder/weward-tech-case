@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { FeedItem } from "../domain/FeedItem";
-import { id, optionalString, requiredString } from "../../../app/parse";
+import { id, requiredString } from "../../../app/parse";
 import { createProvider, fetchProviderPage } from "./fetchProviderPage";
 
 const calendarDate = z.iso.date().transform((value) => {
@@ -12,10 +12,10 @@ export const providerCItemSchema = z
   .object({
     id: id.transform((rawId) => `c-${rawId}`),
     Title: requiredString,
-    picture_url: optionalString,
+    picture_url: requiredString,
     date_published: calendarDate,
     action_url: requiredString,
-    byline: optionalString,
+    byline: requiredString,
     section_hint: z.unknown(),
   })
   .transform(

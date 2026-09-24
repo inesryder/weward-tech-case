@@ -16,15 +16,11 @@ const CARD_GAP = 12;
 function DiscoverCard({ item }: { item: FeedItem }) {
   return (
     <View style={styles.card}>
-      {item.imageUrl ? (
-        <Image
-          source={{ uri: item.imageUrl }}
-          accessibilityLabel={item.imageAlt ?? undefined}
-          style={styles.image}
-        />
-      ) : (
-        <View style={[styles.image, styles.imagePlaceholder]} />
-      )}
+      <Image
+        source={{ uri: item.imageUrl }}
+        accessibilityLabel={item.imageAlt ?? undefined}
+        style={styles.image}
+      />
       <View style={styles.body}>
         <View>
           <ProviderLabel provider={item.provider} />
@@ -84,8 +80,6 @@ const styles = StyleSheet.create({
   image: {
     width: CARD_WIDTH,
     height: 130,
-  },
-  imagePlaceholder: {
     backgroundColor: "#ddd",
   },
   body: {

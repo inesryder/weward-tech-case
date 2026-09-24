@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TextStyle } from "react-native";
+import { StyleSheet, Text } from "react-native";
 import { ProviderId } from "../domain/FeedItem";
 
 export const PROVIDER_LABELS: Record<ProviderId, string> = {

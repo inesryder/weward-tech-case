@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { FeedItem } from "../domain/FeedItem";
-import { id, optionalString, requiredString } from "../../../app/parse";
+import { id, requiredString } from "../../../app/parse";
 import { createProvider } from "./fetchProviderPage";
 
 const isoDateTime = z.iso.datetime({ offset: true }).transform((value) => new Date(value));
@@ -9,10 +9,10 @@ export const providerAItemSchema = z
   .object({
     id,
     title: requiredString,
-    image: optionalString,
+    image: requiredString,
     publishedAt: isoDateTime,
     ctaUrl: requiredString,
-    author: optionalString,
+    author: requiredString,
   })
   .transform(
     (raw): FeedItem => ({

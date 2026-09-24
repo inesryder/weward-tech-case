@@ -5,10 +5,10 @@ export type FeedItem = {
   id: string;
   provider: ProviderId;
   title: string;
-  imageUrl: string | null;
+  imageUrl: string;
   imageAlt: string | null;
   publishedAt: Date;
   url: string;
-  author: string | null;
+  author: string;
   featured: boolean;
 };
