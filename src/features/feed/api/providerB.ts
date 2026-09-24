@@ -32,8 +32,7 @@ export const providerBItemSchema = z
       publishedAt: raw.ts,
       url: raw.link,
       author: raw.source,
-      tags: [],
-      sectionHint: null,
+      featured: false,
     }),
   );
 

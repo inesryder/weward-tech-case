@@ -1,33 +1,25 @@
 import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
 import {
-  ContentProvider,
+  CONTENT_PROVIDERS,
   fetchFeedRound,
   fetchProviderCFeatured,
   hasMoreRounds,
   initialCursors,
-  providerC,
 } from "../api";
 
-export const providerQueryKeys = {
-  all: ["provider"] as const,
-  feedRounds: (perPage: number) => [...providerQueryKeys.all, "feed-rounds", { perPage }] as const,
-  featured: (providerId: string, limit: number) =>
-    [...providerQueryKeys.all, providerId, "featured", { limit }] as const,
-};
+const ITEMS_PER_PROVIDER_PAGE = 10;
+export const FEATURED_LIMIT = 5;
 
-export function feedRoundsQuery(providers: readonly ContentProvider[], perPage: number) {
-  return infiniteQueryOptions({
-    queryKey: providerQueryKeys.feedRounds(perPage),
-    initialPageParam: initialCursors(providers),
-    queryFn: ({ pageParam, signal }) => fetchFeedRound(providers, pageParam, perPage, signal),
-    getNextPageParam: (lastRound) =>
-      hasMoreRounds(lastRound.nextCursors) ? lastRound.nextCursors : undefined,
-  });
-}
+export const feedRoundsQuery = infiniteQueryOptions({
+  queryKey: ["feed", "rounds"],
+  initialPageParam: initialCursors(CONTENT_PROVIDERS),
+  queryFn: ({ pageParam, signal }) =>
+    fetchFeedRound(CONTENT_PROVIDERS, pageParam, ITEMS_PER_PROVIDER_PAGE, signal),
+  getNextPageParam: (lastRound) =>
+    hasMoreRounds(lastRound.nextCursors) ? lastRound.nextCursors : undefined,
+});
 
-export function providerCFeaturedQuery(limit: number) {
-  return queryOptions({
-    queryKey: providerQueryKeys.featured(providerC.id, limit),
-    queryFn: ({ signal }) => fetchProviderCFeatured({ limit, signal }),
-  });
-}
+export const featuredQuery = queryOptions({
+  queryKey: ["feed", "featured"],
+  queryFn: ({ signal }) => fetchProviderCFeatured({ limit: FEATURED_LIMIT, signal }),
+});

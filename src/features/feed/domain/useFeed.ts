@@ -1,14 +1,8 @@
 import { InfiniteData, useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ProviderId } from "./FeedItem";
 import { CONTENT_PROVIDERS, FeedRound, providerC } from "../api";
-import { feedRoundsQuery, providerCFeaturedQuery } from "./feedQueries";
-import { buildFeedSections } from "./buildFeed";
-
-const ITEMS_PER_PROVIDER_PAGE = 10;
-const FEATURED_LIMIT = 5;
-
-const roundsQuery = feedRoundsQuery(CONTENT_PROVIDERS, ITEMS_PER_PROVIDER_PAGE);
-const featuredQuery = providerCFeaturedQuery(FEATURED_LIMIT);
+import { FEATURED_LIMIT, featuredQuery, feedRoundsQuery } from "./feedQueries";
+import { buildFeedSections } from "./feedSections";
 
 function keepFirstRound<TPageParam>(
   data: InfiniteData<FeedRound, TPageParam> | undefined,
@@ -19,11 +13,11 @@ function keepFirstRound<TPageParam>(
 
 export function useFeed() {
   const queryClient = useQueryClient();
-  const rounds = useInfiniteQuery(roundsQuery);
+  const rounds = useInfiniteQuery(feedRoundsQuery);
   const featured = useQuery(featuredQuery);
 
   const sections = buildFeedSections({
-    featured: featured.data ?? [],
+    featuredItems: featured.data ?? [],
     rounds: rounds.data?.pages.map((round) => round.items) ?? [],
     featuredLimit: FEATURED_LIMIT,
   });
@@ -58,7 +52,7 @@ export function useFeed() {
 
   const refresh = async () => {
     // Pull-to-refresh restarts pagination from the first round instead of re-fetching every loaded page.
-    queryClient.setQueryData(roundsQuery.queryKey, keepFirstRound);
+    queryClient.setQueryData(feedRoundsQuery.queryKey, keepFirstRound);
     await Promise.all([refetchRounds(), refetchFeatured()]);
   };
 

@@ -8,8 +8,6 @@ const calendarDate = z.iso.date().transform((value) => {
   return new Date(year, month - 1, day);
 });
 
-const sectionHint = z.enum(["featured", "browse", "discover"]).nullable().catch(null);
-
 export const providerCItemSchema = z
   .object({
     id: id.transform((rawId) => `c-${rawId}`),
@@ -18,7 +16,7 @@ export const providerCItemSchema = z
     date_published: calendarDate,
     action_url: requiredString,
     byline: optionalString,
-    section_hint: sectionHint,
+    section_hint: z.unknown(),
   })
   .transform(
     (raw): FeedItem => ({
@@ -30,8 +28,7 @@ export const providerCItemSchema = z
       publishedAt: raw.date_published,
       url: raw.action_url,
       author: raw.byline,
-      tags: [],
-      sectionHint: raw.section_hint,
+      featured: raw.section_hint === "featured",
     }),
   );
 

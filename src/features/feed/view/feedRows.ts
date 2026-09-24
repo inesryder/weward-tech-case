@@ -1,5 +1,5 @@
 import { FeedItem } from "../domain/FeedItem";
-import { AuthorGroup, FeedSections } from "../domain/buildFeed";
+import { AuthorGroup, FeedSections } from "../domain/feedSections";
 
 /**
  * The feed is rendered as one virtualized list of heterogeneous rows, so the

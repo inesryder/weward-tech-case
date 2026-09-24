@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { FeedItem } from "../domain/FeedItem";
-import { id, optionalString, requiredString, stringList } from "../../../app/parse";
+import { id, optionalString, requiredString } from "../../../app/parse";
 import { createProvider } from "./fetchProviderPage";
 
 const isoDateTime = z.iso.datetime({ offset: true }).transform((value) => new Date(value));
@@ -13,7 +13,6 @@ export const providerAItemSchema = z
     publishedAt: isoDateTime,
     ctaUrl: requiredString,
     author: optionalString,
-    tags: stringList,
   })
   .transform(
     (raw): FeedItem => ({
@@ -25,8 +24,7 @@ export const providerAItemSchema = z
       publishedAt: raw.publishedAt,
       url: raw.ctaUrl,
       author: raw.author,
-      tags: raw.tags,
-      sectionHint: null,
+      featured: false,
     }),
   );
 
