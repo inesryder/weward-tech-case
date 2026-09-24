@@ -8,7 +8,7 @@ import { createLikesStore } from "./likesStore";
 const LIKE_WRITE_DEBOUNCE_MS = 400;
 
 export const likesStore = createLikesStore({
-  getServerLike: async (itemId) => (await queryClient.ensureQueryData(serverLikesQuery))[itemId],
+  getServerLike: async (itemId) => (await queryClient.query({ ...serverLikesQuery, staleTime: "static" }))[itemId],
   setServerLike: (like) => setServerLike(queryClient, like),
   saveLikeCount,
   likedStorage: likedItemsStorage,
