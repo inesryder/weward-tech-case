@@ -9,11 +9,10 @@ const LikeAnimationContext = createContext<RiveFile | null>(null);
 export function LikeAnimationProvider({ children }: { children: ReactNode }) {
   const { riveFile } = useRiveFile(LIKE_ANIMATION_SOURCE);
   return (
-    <LikeAnimationContext.Provider value={riveFile ?? null}>{children}</LikeAnimationContext.Provider>
+    <LikeAnimationContext value={riveFile ?? null}>{children}</LikeAnimationContext>
   );
 }
 
-/** The loaded Rive file, or null while loading or if it failed to load. */
 export function useLikeAnimationFile(): RiveFile | null {
   return useContext(LikeAnimationContext);
 }

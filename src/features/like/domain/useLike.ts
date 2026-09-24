@@ -3,10 +3,6 @@ import { useSyncExternalStore } from "react";
 import { serverLikesQuery } from "./likeQueries";
 import { likesStore } from "./likes";
 
-/**
- * Like state of one item. Every component showing the same item reads the same
- * store, so liking it in one section updates it everywhere it's shown.
- */
 export function useLike(itemId: string) {
   const { data: serverCount = 0 } = useQuery({
     ...serverLikesQuery,

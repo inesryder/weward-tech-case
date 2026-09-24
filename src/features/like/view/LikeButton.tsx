@@ -6,7 +6,7 @@ import {
   useRiveBoolean,
   useViewModelInstance,
 } from "@rive-app/react-native";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useLike } from "../domain/useLike";
 import { useLikeAnimationFile } from "./LikeAnimationProvider";
@@ -30,7 +30,7 @@ export function LikeButton({ itemId }: Props) {
     <Pressable
       onPress={toggle}
       hitSlop={8}
-      style={[styles.button]}
+      style={styles.button}
       accessibilityRole="button"
       accessibilityLabel={isLiked ? "Unlike" : "Like"}
       accessibilityValue={{ text: `${count} likes` }}
@@ -41,10 +41,10 @@ export function LikeButton({ itemId }: Props) {
         {riveFile ? (
           <LikeAnimation file={riveFile} isActive={isLiked} />
         ) : (
-          <Text style={[styles.fallbackIcon]}>{isLiked ? "♥" : "♡"}</Text>
+          <Text style={styles.fallbackIcon}>{isLiked ? "♥" : "♡"}</Text>
         )}
       </View>
-      <Text style={[styles.count]}>{count}</Text>
+      <Text style={styles.count}>{count}</Text>
     </Pressable>
   );
 }
@@ -56,18 +56,7 @@ function LikeAnimation({
   file: RiveFile;
   isActive: boolean;
 }) {
-  // Start the view model in the current state, so already-liked items render
-  // filled without replaying the like animation when they scroll into view.
-  const initialIsActive = useRef(isActive);
-  const { instance } = useViewModelInstance(file, {
-    async: true,
-    artboardName: ARTBOARD,
-    onInit: (vmi) => {
-      const property = vmi.booleanProperty(IS_ACTIVE);
-      property?.set(initialIsActive.current);
-      property?.dispose();
-    },
-  });
+  const { instance } = useViewModelInstance(file, { async: true, artboardName: ARTBOARD });
   const { setValue } = useRiveBoolean(IS_ACTIVE, instance);
   const { riveViewRef, setHybridRef } = useRive();
 
@@ -103,7 +92,6 @@ const styles = StyleSheet.create({
   button: {
     flexDirection: "row",
     alignItems: "center",
-    // gap: 2,
     backgroundColor: "#F5F3F5",
     padding: 2,
     paddingRight: 6,
@@ -117,7 +105,7 @@ const styles = StyleSheet.create({
   },
   fallbackIcon: {
     fontSize: 20,
-    color: "#e0245e",
+    color: "#FF732B",
   },
   count: {
     minWidth: 16,
