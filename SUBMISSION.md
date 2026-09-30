@@ -4,9 +4,9 @@ A React Native (Expo SDK 55) app that aggregates three inconsistent provider fee
 scrollable screen with three differently styled sections, and a persisted, optimistic like
 feature animated with Rive.
 
-For a detailed walkthrough of the code, see [`TOUR.md`](./TOUR.md). Deeper dives:
-[`FEED_PROVIDERS.md`](./FEED_PROVIDERS.md) (the provider pipeline) and
-[`FEED_QUERIES.md`](./FEED_QUERIES.md) (the featured and feed queries' lifecycle).
+For a detailed walkthrough of the code, see [`docs/TOUR.md`](./docs/TOUR.md). Deeper dives:
+[`docs/FEED_PROVIDERS.md`](./docs/FEED_PROVIDERS.md) (the provider pipeline) and
+[`docs/FEED_QUERIES.md`](./docs/FEED_QUERIES.md) (the featured and feed queries' lifecycle).
 
 ---
 
@@ -161,25 +161,30 @@ and shared through context.
 
 ## AI tooling
 
-> TODO (Inès): review and adjust this section — it must reflect your own experience.
-
 **Tools.** Claude Code, in the terminal, across the whole case: reading the brief and the data,
 designing and implementing the feed and like features, code review, debugging the native build
 and the Rive integration, restructuring the architecture, and writing these docs.
-*TODO: add any other tools you used (Cursor, Copilot, …).*
 
 **Where it clearly helped me ship faster or better.**
+- *First version of the feed.* It produced the initial feed screen, sections and item components
+  very quickly, and I barely had to touch that first design. Building the feed and its items by
+  hand would have taken me a good while.
+- *The feed query system.* It proposed the design for querying and paginating the three
+  providers: per-provider cursors, "rounds" fetched in parallel, a failed provider keeping its
+  cursor, and rounds stored as the pages of one infinite query. Designing that myself would have
+  taken much longer, and the result (with a few tweaks from me) is better than what I would have
+  come up with.
 - *Debugging the Rive animation.* Taps updated the like state but the heart didn't animate, with
   no error. The AI confirmed the taps reached the backend, then read the Rive runtime's native iOS
   source and found that view-model property changes don't wake a state machine that has settled
   (only legacy inputs call `playIfNeeded()`). A one-line fix.
-- *Native build on Xcode 27.* It traced the build failure to Expo SDK 55 requiring a newer Swift,
-  then, after the Xcode upgrade, to a Rive pod declaring an iOS deployment target Xcode 27 rejects,
-  and fixed it with a config plugin so it survives `expo prebuild --clean`.
 - *Backend quirks.* While testing, it found that json-server ignores the `id` sent on POST, which
   would have broken updates to newly created like records; the model now tracks record ids.
 - *Code review.* A review pass caught a real bug (the footer said "You're all caught up." while
   the feed was still loading or had failed) and a timezone bug in provider C's dates.
+- *Project documentation.* It wrote the project docs in `docs/` (`TOUR.md`, `FEED_PROVIDERS.md`,
+  `FEED_QUERIES.md`), which helped me understand the choices it made on the more complex parts of
+  the code quickly and adapt.
 
 **Where I overrode, corrected or rejected what it produced — and how I caught it.**
 - *Feed ordering.* It sorted the merged feed by date and then had to invent "rounds" sorting to
@@ -189,18 +194,10 @@ and the Rive integration, restructuring the architecture, and writing these docs
 - *Product rules it couldn't infer.* I defined the section rules (C's `section_hint`, where
   A/B items go), the author-based Discover section and its placement every 10 Browse items, and
   chose a carousel with an indicator for Featured.
-- *`db.json`.* I noticed `db.json` had changed although the brief says not to edit it. Part of it
-  came from the AI running json-server directly on the file and sending test writes to my running
-  server (it restored those), and part from json-server persisting likes by design. I had it
-  revert the file and I keep those changes out of commits.
 - *Rive on mount.* I noticed the like animation and sound play when an already-liked item mounts.
   The AI checked the file and the runtime API and showed it can't be fixed client-side (no seek or
   mute; the file only reaches "liked" through the animation). I chose to keep it and raise it with
   design rather than accept a hacky workaround.
-- *Simplifying the likes store.* I proposed replacing the custom sync engine with a plain query +
-  optimistic mutation. The AI implemented it with the trade-offs laid out (one request per tap,
-  rollback edge cases with queued taps); after weighing them I kept the original design.
-- *File architecture.* The AI organized the code by technical layer across the whole app:
   `data/`, `domain/`, `queries/`, `features/`, `components/`, `screens/`. Each feature ended up
   spread over six top-level folders, and the boundaries were blurry: fetching lived in `data/`,
   query definitions in `queries/`, business hooks in `features/`, and shared code such as the HTTP
@@ -220,26 +217,22 @@ and the Rive integration, restructuring the architecture, and writing these docs
   exercise (e.g. schema-validating MMKV reads, refetch-on-focus).
 
 **What I deliberately wrote by hand, and why.**
-*TODO: fill in — e.g. the final styling of the like button (pill background, colors) and cards,
-which I tuned by eye in the simulator.*
+The final styling of the like button (pill background, colors) and cards,
+which I tuned by eye in the simulator, these were small tweaks that were
+easier to do by hand than explaining to Claude
 
 ---
 
 ## What I'd do differently with more time
 
-- **Tracking.** Add viewport-based impressions (what was actually on screen, and for how long)
-  next to the "presented" event, and batch events to a real analytics endpoint through the
-  logger, with an offline queue.
 - **Tests.** Move the scripted checks I ran during development (provider schemas, rounds,
   section building, the likes engine) into Jest, and add React Native Testing Library tests for the
   screen states (loading, partial failure, end of feed, retry).
-- **Likes backend.** Ask for an atomic increment/decrement endpoint (or per-user likes): with
-  absolute counts, concurrent likes from different users can be lost.
-- **Rive file.** Ask design for instant `isActive` transitions plus a separate `tap` trigger, so
-  already-liked items render filled without replaying the animation and sound.
+- **Linting and formatting.** Add ESLint (Expo config plus the React hooks and React Compiler
+  rules) and Prettier (quotes, line width, import ordering), run on save and in a pre-commit
+  hook. Several style decisions I made by hand during the review (double quotes, grouped
+  imports, inline props for small components) would then be enforced automatically, and the
+  code would look cohesive no matter who, or which tool, wrote it.
 - **List performance.** Try FlashList for the mixed-layout list and `expo-image` for image
   caching, and measure on a low-end Android device.
 - **Android.** Build and test it (only iOS was verified).
-- **Discover leftovers.** Author groups only appear when there are enough Browse rows to reach
-  their slot; show remaining groups at the end of the feed.
-- **Tooling.** ESLint with the React Compiler / hooks rules, and CI running type-check and tests.
