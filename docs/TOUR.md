@@ -467,6 +467,10 @@ being down.
 - **Config plugin** `plugins/withPodsMinDeploymentTarget.js` raises pods declaring iOS < 15.1
   (RiveRuntime's privacy bundle) so Xcode 27 builds; it survives `expo prebuild --clean`.
 - `ios/` is generated (`expo prebuild`) and git-ignored.
+- **Tests:** Jest with the `jest-expo` preset (`npm test`), colocated `*.test.ts` files for the
+  pure logic: provider schemas (against `fixtures/`), `fetchProviderPage`, `fetchFeedRound`,
+  `buildFeedSections`, the likes engine (`createLikesStore`, with fake timers) and
+  `presentedSections`. Type-check including tests: `npx tsc --noEmit --types react-native,jest`.
 
 ---
 
@@ -484,5 +488,4 @@ being down.
   impressions would need viewability tracking.
 - **Leftover Discover groups:** an author group only shows when enough Browse items exist to
   reach its slot.
-- **No automated test suite:** logic was verified with scripted checks (sync engine, rounds,
-  schemas, query behavior) during development.
+- **Tests cover the pure logic only** (see 7): screen states and hooks aren't tested yet.

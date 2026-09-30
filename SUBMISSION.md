@@ -27,6 +27,9 @@ npx expo run:ios
 
 # afterwards, serving JS changes to the installed app is enough
 npm start
+
+# unit tests (Jest, no device or backend needed)
+npm test
 ```
 
 - On a physical device, replace `localhost` in `src/app/config.ts` with your machine's LAN IP.
@@ -114,8 +117,15 @@ json-server generates its own record id on POST. So:
   and shows a toast.
 - **No blink on cold start:** counts and liked flags are seeded from MMKV, then reconciled with
   the server on launch. Only server-confirmed state is persisted.
-- The engine takes its dependencies by injection, which let me test its tricky cases (rapid taps,
-  taps during a request, failures) without a device.
+- The engine takes its dependencies by injection, so its tricky cases (rapid taps, taps during a
+  request, failures) are covered by unit tests without a device.
+
+### Tests
+
+A Jest suite (`jest-expo`, `npm test`) covers the pure logic where the risk is: provider schemas
+(run against the seed data, including the malformed entries), page fetching and envelope
+validation, pagination rounds, section building, the likes sync engine, and the analytics
+event's sections and deltas. Tests sit next to the code they cover (`*.test.ts`).
 
 ### Tracking what the user saw
 
@@ -225,9 +235,9 @@ easier to do by hand than explaining to Claude
 
 ## What I'd do differently with more time
 
-- **Tests.** Move the scripted checks I ran during development (provider schemas, rounds,
-  section building, the likes engine) into Jest, and add React Native Testing Library tests for the
-  screen states (loading, partial failure, end of feed, retry).
+- **Tests.** Extend the unit suite with React Native Testing Library tests for the screen states
+  (loading, partial failure, end of feed, retry) and the tracking hook's triggers, and run
+  type-check and tests in CI.
 - **Linting and formatting.** Add ESLint (Expo config plus the React hooks and React Compiler
   rules) and Prettier (quotes, line width, import ordering), run on save and in a pre-commit
   hook. Several style decisions I made by hand during the review (double quotes, grouped
