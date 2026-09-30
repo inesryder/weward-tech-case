@@ -231,9 +231,9 @@ easy to test.
 
 | Situation | What happens |
 |---|---|
-| One item is malformed | Dropped by `parseEach`; the rest of the page is fine |
+| One item is malformed | Dropped by `parseEach` and logged (`[error] malformed_item`, with Zod's reason); the rest of the page is fine |
 | Page wrapper is malformed | That provider's page fails, so it's treated like provider failure (next row) |
-| One provider fails | The other providers' items still show; its cursor is kept, so it's retried next round; the header lists it |
+| One provider fails | Logged (`[error] provider_failed` from `fetchProviderPage`); the other providers' items still show; its cursor is kept, so it's retried next round; the header lists it |
 | Every provider fails in a round | The round throws, TanStack retries once, then "Tap to retry" |
 | Backend hangs | 10s timeout, then the same as a failure |
 | A provider runs out of pages | It drops out of the cursor map; when the map is empty, "You're all caught up." |

@@ -22,6 +22,7 @@ export function useFeed() {
 
   const loadMore = () => {
     if (canLoadMore) rounds.fetchNextPage();
+    return canLoadMore;
   };
 
   const retry = () => {

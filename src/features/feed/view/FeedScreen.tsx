@@ -14,6 +14,7 @@ import { FeaturedCarousel } from "./FeaturedCarousel";
 import { useFeed } from "../domain/useFeed";
 import { buildFeedRows, FeedRow } from "./feedRows";
 import { PROVIDER_LABELS } from "./ProviderLabel";
+import { useFeedPresentedTracking } from "./useFeedPresentedTracking";
 
 const keyExtractor = (row: FeedRow) => row.key;
 
@@ -32,6 +33,25 @@ export function FeedScreen() {
   } = useFeed();
   const { top } = useSafeAreaInsets();
   const rows = buildFeedRows(sections);
+  const { logLoadMore, logRefresh, logRetry } = useFeedPresentedTracking({
+    rows,
+    isSettled: !isLoading && !isRefreshing && !isLoadingMore,
+    failedProviders,
+  });
+
+  const onEndReached = () => {
+    if (loadMore()) logLoadMore();
+  };
+
+  const onRefresh = () => {
+    logRefresh();
+    refresh();
+  };
+
+  const onRetry = () => {
+    logRetry();
+    retry();
+  };
 
   const renderItem: ListRenderItem<FeedRow> = ({ item: row }) => {
     switch (row.type) {
@@ -62,8 +82,8 @@ export function FeedScreen() {
         renderItem={renderItem}
         contentContainerStyle={styles.content}
         refreshing={isRefreshing}
-        onRefresh={refresh}
-        onEndReached={loadMore}
+        onRefresh={onRefresh}
+        onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
         ListHeaderComponent={
           failedProviders.length > 0 ? (
@@ -80,7 +100,7 @@ export function FeedScreen() {
             isLoadingMore={isLoadingMore}
             loadFailed={loadFailed}
             showEndOfFeed={!hasMore && rows.length > 0}
-            onRetry={retry}
+            onRetry={onRetry}
           />
         }
       />

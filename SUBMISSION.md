@@ -115,6 +115,22 @@ json-server generates its own record id on POST. So:
 - The engine takes its dependencies by injection, which let me test its tricky cases (rapid taps,
   taps during a request, failures) without a device.
 
+### Tracking what the user saw
+
+`feed_presented` fires when the feed's content settles after the screen mounts, and again after
+pull-to-refresh, load more and "Tap to retry", with a `trigger` field telling them apart. It
+carries, per section, the ordered items (`position`, `itemId`, `provider`; Discover groups also
+carry their author and where they sit in the list), plus `sessionId`, `screenViewId`,
+`sequence`, timestamp, app version / platform, time since the screen mounted, and the providers
+that failed. `initial`/`refresh` carry the full layout; `load_more`/`retry` only what they newly
+presented, so nothing is double counted. Ids only, no content.
+
+It lives in the **feed's view layer**, on purpose: "what was presented" is defined by the row
+layout (where Discover carousels are slotted), so the event is built from the same rows the
+`FlatList` renders and can't drift from the screen. A pure function builds the sections; a small
+hook owns the screen view and decides when to fire. An `app/logger` (info / warn / error) is the
+transport, and also records malformed items and provider failures where they happen.
+
 ### Animation driven by state
 
 The Rive view is non-interactive; a `Pressable` handles the tap and the optimistic `isLiked` is
@@ -135,6 +151,7 @@ and shared through context.
 | **React Compiler** | Automatic memoization; no manual `memo` / `useMemo` / `useCallback` in the codebase. |
 | **StyleSheet (no UI kit)** | Fastest path to three visibly different sections without adding a styling dependency. |
 | **Zod 4** | The case is about the external/internal boundary: a schema per provider is both the contract and the validation, transforms normalize in place, and failures explain *why* an item was dropped. Built-ins like `z.iso.date()` replaced hand-written date checks. |
+| **expo-constants** | App version for the analytics event; already part of Expo's native build. |
 | **react-native-safe-area-context** | Real safe-area insets for the screen top and the toast, instead of hardcoded offsets. |
 | **Custom toast** | A small store + animated host (~100 lines), no dependency, lives in `app/` as shared infrastructure. |
 
@@ -208,10 +225,9 @@ which I tuned by eye in the simulator.*
 
 ## What I'd do differently with more time
 
-- **Part 3 — tracking.** Not implemented. I'd fire a single `feed_viewed` event from the feed's
-  domain layer once the first render settles, carrying: a view id and session id, timestamp, app
-  version, and per section the ordered list of `{ itemId, provider, position }` (plus the author
-  for Discover groups), and which providers failed — logged to a local buffer.
+- **Tracking.** Add viewport-based impressions (what was actually on screen, and for how long)
+  next to the "presented" event, and batch events to a real analytics endpoint through the
+  logger, with an offline queue.
 - **Tests.** Move the scripted checks I ran during development (provider schemas, rounds,
   section building, the likes engine) into Jest, and add React Native Testing Library tests for the
   screen states (loading, partial failure, end of feed, retry).

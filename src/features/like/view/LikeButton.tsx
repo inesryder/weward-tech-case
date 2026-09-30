@@ -8,6 +8,7 @@ import {
 } from "@rive-app/react-native";
 import { useEffect } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { logger } from "../../../app/logger";
 import { useLike } from "../domain/useLike";
 import { useLikeAnimationFile } from "./LikeAnimationProvider";
 
@@ -81,9 +82,7 @@ function LikeAnimation({
       autoPlay
       fit={Fit.Contain}
       style={styles.icon}
-      onError={(error) => {
-        if (__DEV__) console.warn("Like animation error:", error.message);
-      }}
+      onError={(error) => logger.warn("like_animation_error", { message: error.message })}
     />
   );
 }

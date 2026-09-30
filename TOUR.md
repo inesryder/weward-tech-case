@@ -47,6 +47,8 @@ src/
     parse.ts                  reusable zod field schemas + parseEach (drops malformed items)
     storage.ts                MMKV wrapper (readJson / writeJson)
     queryClient.ts            app-wide QueryClient (retry: 1)
+    logger.ts                 info / warn / error, console transport
+    session.ts                session id (per app launch) + id helper
     toast/                    toastStore (tiny emitter) + ToastHost (animated view)
   shared/                     domain-blind UI components
     SnapCarousel.tsx          horizontal snapping carousel used by Featured and Discover
@@ -54,7 +56,7 @@ src/
     feed/
       api/                    provider schemas, page fetching, pagination rounds (index.ts = public entry)
       domain/                 FeedItem model, feedSections, feedQueries, useFeed
-      view/                   FeedScreen, row model, cards, carousels
+      view/                   FeedScreen, row model, cards, carousels, feed_presented tracking
     like/
       api/                    likes REST calls + record schema, MMKV persistence
       domain/                 ServerLike model, sync engine (likesStore), queries, useLike
@@ -345,7 +347,80 @@ the file (instant `isActive` transitions + a separate `tap` trigger for the anim
 
 ---
 
-## 5. Shared infrastructure
+## 5. Tracking what the user saw
+
+### What is fired
+
+`feed_presented` is logged (`logger.info`) when the feed's content **settles**: after the screen
+mounts (`trigger: "initial"`), after a pull-to-refresh (`"refresh"`), and after a load more or
+a "Tap to retry" that presented something new (`"load_more"`, `"retry"`).
+
+```ts
+type FeedPresentedEvent = {
+  name: "feed_presented";
+  trigger: "initial" | "load_more" | "refresh" | "retry";
+  timestamp: string;                 // ISO
+  sessionId: string;                 // per app launch (app/session.ts)
+  screenViewId: string;              // per FeedScreen mount, shared by all its events
+  sequence: number;                  // 1, 2, 3… within the screen view
+  app: { version: string; platform: string; osVersion: string };
+  msSinceScreenMount: number;        // time to content (initial), engagement depth (later)
+  failedProviders: ProviderId[];     // partial failures at that moment
+  sections: {
+    featured: { position; itemId; provider }[];
+    browse:   { position; itemId; provider }[];
+    discover: { position; author; afterBrowsePosition; items: { position; itemId; provider }[] }[];
+  };
+  counts: { featured; browse; discoverGroups; discoverItems };
+};
+```
+
+- **"Presented" = laid out**, not "visible in the viewport": every row once content settles,
+  including rows below the fold.
+- **Positions** are 1-based and absolute within their section; Browse positions continue across
+  load mores; `afterBrowsePosition` says where a Discover carousel sits in the list.
+- **No double counting:** `initial` and `refresh` carry the full layout; `load_more` and `retry`
+  only carry *newly presented* entries (new Browse rows, new Discover groups, new items appended
+  to existing groups). A load more that presents nothing new fires nothing.
+- **Ids and providers only**, no titles or URLs: analytics joins on ids, and the payload stays
+  small.
+- `initial` also fires when nothing could be loaded (empty sections + `failedProviders`), so
+  error screen views are visible in analytics.
+
+### Where it lives, and why
+
+In the **view layer** (`features/feed/view/`), deliberately. The event describes what was
+*presented*, and that is defined by the row layout: `buildFeedRows` decides where Discover groups
+are slotted. Building the event from the same `FeedRow[]` the `FlatList` renders means it can't
+drift from the screen.
+
+- `feedPresentedEvent.ts`: the event type and the pure `presentedSections(rows, reported)`,
+  which lays rows out as sections with positions and skips entries already reported.
+- `useFeedPresentedTracking.ts`: owns the screen view (id, mount time, sequence, reported keys,
+  pending trigger). `FeedScreen` calls `logLoadMore()` only when `loadMore()` actually started a
+  load, `logRefresh()` on pull-to-refresh and `logRetry()` on "Tap to retry". The hook fires
+  when the feed is settled (not loading, refreshing or loading more).
+- `app/logger.ts` is only the transport.
+
+### Operational logs
+
+The same logger records problems, at the point where they happen. `error` is for anything
+related to the API (bad data, failed requests); `warn` is for front-end technical issues.
+
+| Event | Level | Where |
+|---|---|---|
+| `malformed_item` (source, id, Zod reason) | error | `parseEach` in `app/parse.ts` |
+| `malformed_payload` (source) | error | `parseEach` |
+| `provider_failed` (providerId, page, message) | error | `fetchProviderPage`: one place covers rounds and the featured query; cancellations aren't logged |
+| `like_animation_error` | warn | `LikeButton` (Rive `onError`) |
+
+The logger prints every level with `console.log` and a `[level]` tag: in dev, React Native's
+LogBox turns `console.warn`/`console.error` into overlays, which would pop up for expected
+conditions such as malformed data or the backend being down.
+
+---
+
+## 6. Shared infrastructure
 
 ### `src/app`
 
@@ -355,6 +430,8 @@ the file (instant `isActive` transitions + a separate `tap` trigger for the anim
 | `parse.ts` | Zod field schemas (`requiredString`, `optionalString`, `id`) and `parseEach` (drops + logs malformed items) |
 | `storage.ts` | Single MMKV instance, JSON helpers; corrupted entries are discarded instead of crashing |
 | `queryClient.ts` | One `QueryClient` (queries retry once), used by React and by the likes engine |
+| `logger.ts` | `logger.info/warn/error(event, context)`: one tagged console line per entry (the transport for tracking and operational logs) |
+| `session.ts` | `SESSION_ID` (per app launch) and `createId()` |
 | `toast/` | `showToast(message)` emitter + `ToastHost` (fade/slide above the bottom safe area, auto-dismiss ~2.5 s, announced to VoiceOver and Android screen readers) |
 
 ### `src/shared`
@@ -365,7 +442,7 @@ the file (instant `isActive` transitions + a separate `tap` trigger for the anim
 
 ---
 
-## 6. Build and tooling notes
+## 7. Build and tooling notes
 
 - **React Compiler** is enabled in `app.json` (`experiments.reactCompiler`). All components and
   hooks compile; there is no manual `memo`/`useMemo`/`useCallback` in the codebase.
@@ -378,16 +455,18 @@ the file (instant `isActive` transitions + a separate `tap` trigger for the anim
 
 ---
 
-## 7. Status and known limitations
+## 8. Status and known limitations
 
 | Area | Status |
 |---|---|
 | Part 1 — Feed (normalization, sections, pagination, refresh, partial failures) | Done |
 | Part 2 — Likes (optimistic, persisted, reconciled, animated, error toast) | Done |
-| Part 3 — Tracking event on feed mount | Not implemented yet |
+| Part 3 — Tracking (`feed_presented` on initial load, refresh, load more, retry) + operational logs | Done |
 
 - **Concurrent likes from other users can be lost:** the backend only accepts absolute counts.
 - **Rive mount animation** for already-liked items (see 4.5).
+- **"Presented" means laid out, not seen:** rows below the fold count as presented; viewport-based
+  impressions would need viewability tracking.
 - **Leftover Discover groups:** an author group only shows when enough Browse items exist to
   reach its slot.
 - **No automated test suite:** logic was verified with scripted checks (sync engine, rounds,

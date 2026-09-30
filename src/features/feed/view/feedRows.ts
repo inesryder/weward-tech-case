@@ -5,14 +5,14 @@ export type FeedRow =
   | { type: "header"; key: string; title: string }
   | { type: "featured"; key: string; items: FeedItem[] }
   | { type: "browse"; key: string; item: FeedItem }
-  | { type: "discover"; key: string; items: FeedItem[] };
+  | { type: "discover"; key: string; author: string; items: FeedItem[] };
 
 const BROWSE_ITEMS_BETWEEN_DISCOVER = 10;
 
 function discoverRows(group: AuthorGroup): FeedRow[] {
   return [
     { type: "header", key: `header-discover-${group.author}`, title: `Discover more : ${group.author}` },
-    { type: "discover", key: `discover-${group.author}`, items: group.items },
+    { type: "discover", key: `discover-${group.author}`, author: group.author, items: group.items },
   ];
 }
 
