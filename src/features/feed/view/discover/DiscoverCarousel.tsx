@@ -1,8 +1,8 @@
 import { Image, StyleSheet, Text, View } from "react-native";
-import { SnapCarousel } from "../../../shared/SnapCarousel";
-import { FeedItem } from "../domain/FeedItem";
-import { LikeButton } from "../../like/view/LikeButton";
-import { ProviderLabel } from "./ProviderLabel";
+import { SnapCarousel } from "../../../../shared/SnapCarousel";
+import { FeedItem } from "../../domain/FeedItem";
+import { LikeButton } from "../../../like/view/LikeButton";
+import { ProviderLabel } from "../ProviderLabel";
 
 const CARD_WIDTH = 200;
 

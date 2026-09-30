@@ -8,9 +8,9 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BrowseRow } from "./BrowseRow";
-import { DiscoverCarousel } from "./DiscoverCarousel";
-import { FeaturedCarousel } from "./FeaturedCarousel";
+import { BrowseRow } from "./browse/BrowseRow";
+import { DiscoverCarousel } from "./discover/DiscoverCarousel";
+import { FeaturedCarousel } from "./featured/FeaturedCarousel";
 import { useFeed } from "../domain/useFeed";
 import { buildFeedRows, FeedRow } from "./feedRows";
 import { PROVIDER_LABELS } from "./ProviderLabel";

@@ -1,7 +1,7 @@
 import { Image, StyleSheet, Text, View } from "react-native";
-import { FeedItem } from "../domain/FeedItem";
-import { LikeButton } from "../../like/view/LikeButton";
-import { ProviderLabel } from "./ProviderLabel";
+import { FeedItem } from "../../domain/FeedItem";
+import { LikeButton } from "../../../like/view/LikeButton";
+import { ProviderLabel } from "../ProviderLabel";
 
 type Props = {
   item: FeedItem;

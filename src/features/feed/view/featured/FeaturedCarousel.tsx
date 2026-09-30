@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
-import { CAROUSEL_PADDING, SnapCarousel } from "../../../shared/SnapCarousel";
-import { FeedItem } from "../domain/FeedItem";
+import { CAROUSEL_PADDING, SnapCarousel } from "../../../../shared/SnapCarousel";
+import { FeedItem } from "../../domain/FeedItem";
 import { FeaturedCard } from "./FeaturedCard";
 
 type Props = {
