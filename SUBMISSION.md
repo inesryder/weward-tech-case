@@ -208,6 +208,7 @@ and the Rive integration, restructuring the architecture, and writing these docs
   The AI checked the file and the runtime API and showed it can't be fixed client-side (no seek or
   mute; the file only reaches "liked" through the animation). I chose to keep it and raise it with
   design rather than accept a hacky workaround.
+- *File architecture.* The AI organized the code by technical layer across the whole app:
   `data/`, `domain/`, `queries/`, `features/`, `components/`, `screens/`. Each feature ended up
   spread over six top-level folders, and the boundaries were blurry: fetching lived in `data/`,
   query definitions in `queries/`, business hooks in `features/`, and shared code such as the HTTP
