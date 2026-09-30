@@ -4,7 +4,9 @@ A React Native (Expo SDK 55) app that aggregates three inconsistent provider fee
 scrollable screen with three differently styled sections, and a persisted, optimistic like
 feature animated with Rive.
 
-For a detailed walkthrough of the code, see [`TOUR.md`](./TOUR.md).
+For a detailed walkthrough of the code, see [`TOUR.md`](./TOUR.md). Deeper dives:
+[`FEED_PROVIDERS.md`](./FEED_PROVIDERS.md) (the provider pipeline) and
+[`FEED_QUERIES.md`](./FEED_QUERIES.md) (the featured and feed queries' lifecycle).
 
 ---
 
@@ -42,7 +44,7 @@ src/
   app/        shared infrastructure: http client, zod field schemas, MMKV wrapper, query client, toast
   shared/     domain-blind UI components (SnapCarousel)
   features/
-    feed/     api/ → domain/ → view/
+    feed/     api/ → domain/ → view/ (section components in view/browse, view/discover, view/featured)
     like/     api/ → domain/ → view/
 ```
 

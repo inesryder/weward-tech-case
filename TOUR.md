@@ -5,6 +5,12 @@ single scrollable feed with three differently styled sections, plus a persisted,
 like feature with a Rive animation.
 
 This document walks through the architecture, then each feature and how it works.
+Two deeper dives complement it:
+
+- [`FEED_PROVIDERS.md`](./FEED_PROVIDERS.md): the feed provider pipeline end to end (schemas,
+  rounds and cursors, sections, failure handling).
+- [`FEED_QUERIES.md`](./FEED_QUERIES.md): how the featured query and the feed query live side
+  by side (lifecycle, refresh, retry, failures).
 
 ---
 
@@ -56,7 +62,10 @@ src/
     feed/
       api/                    provider schemas, page fetching, pagination rounds (index.ts = public entry)
       domain/                 FeedItem model, feedSections, feedQueries, useFeed
-      view/                   FeedScreen, row model, cards, carousels, feed_presented tracking
+      view/                   FeedScreen, row model (feedRows), ProviderLabel, feed_presented tracking
+        browse/               BrowseRow
+        discover/             DiscoverCarousel (+ DiscoverCard)
+        featured/             FeaturedCarousel, FeaturedCard
     like/
       api/                    likes REST calls + record schema, MMKV persistence
       domain/                 ServerLike model, sync engine (likesStore), queries, useLike
@@ -226,12 +235,16 @@ Discover more : <author B>
 A Discover carousel is slotted after every block of 10 Browse items while author groups remain,
 so Browse can keep growing at the end of the list. Each row type maps to one component:
 
-| Component | Look |
-|---|---|
-| `FeaturedCarousel` + `FeaturedCard` | Full-width, image-forward hero cards, one per swipe, accessible dot indicator |
-| `BrowseRow` | Dense text-forward row: thumbnail left, text, like button right |
-| `DiscoverCarousel` | Horizontal carousel of medium cards (equal height), like button bottom-right |
-| `ProviderLabel` | Small uppercase provider tag shared by all cards; also exports display names |
+| Component | Where | Look |
+|---|---|---|
+| `FeaturedCarousel` + `FeaturedCard` | `view/featured/` | Full-width, image-forward hero cards, one per swipe, accessible dot indicator |
+| `BrowseRow` | `view/browse/` | Dense text-forward row: thumbnail left, text, like button right |
+| `DiscoverCarousel` | `view/discover/` | Horizontal carousel of medium cards (equal height), like button bottom-right |
+| `ProviderLabel` | `view/` | Small uppercase provider tag shared by all cards; also exports display names |
+
+Section-specific components live in their section's folder; files used by the whole screen
+(`FeedScreen`, `feedRows`, `ProviderLabel`, tracking) stay at the root of `view/`. Components
+with up to 3 props declare them inline in the signature; larger prop sets get a named type.
 
 Both carousels are thin wrappers around `shared/SnapCarousel`, which owns the horizontal
 snapping `FlatList`, item width, spacing and the scroll → index calculation.
@@ -414,9 +427,11 @@ related to the API (bad data, failed requests); `warn` is for front-end technica
 | `provider_failed` (providerId, page, message) | error | `fetchProviderPage`: one place covers rounds and the featured query; cancellations aren't logged |
 | `like_animation_error` | warn | `LikeButton` (Rive `onError`) |
 
-The logger prints every level with `console.log` and a `[level]` tag: in dev, React Native's
-LogBox turns `console.warn`/`console.error` into overlays, which would pop up for expected
-conditions such as malformed data or the backend being down.
+The logger prints one line per entry: a `[level] event` tag followed by the context as JSON
+(`JSON.stringify`), so nested data is readable in Metro instead of `[Object]`. Every level goes
+through `console.log`: in dev, React Native's LogBox turns `console.warn`/`console.error` into
+overlays, which would pop up for expected conditions such as malformed data or the backend
+being down.
 
 ---
 
@@ -430,7 +445,7 @@ conditions such as malformed data or the backend being down.
 | `parse.ts` | Zod field schemas (`requiredString`, `optionalString`, `id`) and `parseEach` (drops + logs malformed items) |
 | `storage.ts` | Single MMKV instance, JSON helpers; corrupted entries are discarded instead of crashing |
 | `queryClient.ts` | One `QueryClient` (queries retry once), used by React and by the likes engine |
-| `logger.ts` | `logger.info/warn/error(event, context)`: one tagged console line per entry (the transport for tracking and operational logs) |
+| `logger.ts` | `logger.info/warn/error(event, context)`: one `[level] event` line per entry with the context as JSON (the transport for tracking and operational logs) |
 | `session.ts` | `SESSION_ID` (per app launch) and `createId()` |
 | `toast/` | `showToast(message)` emitter + `ToastHost` (fade/slide above the bottom safe area, auto-dismiss ~2.5 s, announced to VoiceOver and Android screen readers) |
 
