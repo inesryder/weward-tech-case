@@ -1,174 +1,249 @@
-# Tech Case — Senior React Native Engineer
+# Feed case — submission notes
 
-## Context
+A React Native (Expo SDK 55) app that aggregates three inconsistent provider feeds into one
+scrollable screen with three differently styled sections, and a persisted, optimistic like
+feature animated with Rive.
 
-You're joining a team that aggregates content from multiple partner providers and displays it in a unified mobile feed. In practice, this means integrating several third-party SDKs and APIs — and as anyone who's done this kind of work knows, **they rarely agree on a schema**. Field names, nesting, date formats, optional vs. required fields all differ from one provider to the next, even when they're describing the same domain concept. Normalizing this at the right layer is half the job.
-
-The product team wants to render this unified content in a single scrollable list — but with **different visual treatments depending on the section** (e.g. hero cards, compact rows, carousels). Users can also **like** items, and we track how many times each item has been liked.
-
-Your job is to design and implement the foundation of this feature.
-
-## The backend
-
-You'll receive a small `json-server` setup with a `db.json` and a start script. It exposes:
-
-- `GET /provider-a` — returns content from provider A.
-- `GET /provider-b` — returns content from provider B.
-- `GET /provider-c` — returns content from provider C.
-- A `likes` resource for the like feature.
-
-The three provider endpoints return inconsistent shapes — different field names, nesting, and formats — even though they describe the same kind of content. Some entries are malformed.
-
-All provider endpoints support standard `json-server` pagination (`?_page=N&_per_page=M`). Responses include `first / prev / next / last / pages / items / data` envelopes.
-
-Treat this as a real backend you don't control. It can be slow. It can fail. It can return things you didn't expect.
-
-## What you'll build
-
-A single React Native screen with:
-
-1. A feed that fetches from the 3 provider endpoints, normalizes the responses, and renders three differently-styled sections.
-2. A like feature with a counter that increments, persists to the backend, and animates.
-3. A tracking layer that reports what the user actually saw.
-
-## Part 1 — The feed
-
-### Sections to display
-
-Render the **same normalized items** in three sections, each with its own UI:
-
-- **Section 1 — Featured:** large hero cards, one per row, image-forward. Small, fixed set (top 3–5 items).
-- **Section 2 — Browse:** compact list rows, dense, text-forward. **Paginated — loads more as the user scrolls.**
-- **Section 3 — Discover:** horizontal carousel of medium cards.
-
-The user should be able to scroll the whole screen smoothly. Mixing section layouts in one performant list is part of the exercise. The Browse section in particular needs to handle pagination cleanly — appending without flicker, knowing when there's nothing more to load, and behaving correctly on pull-to-refresh.
-
-Note: some items may legitimately appear in more than one section. Liking an item in one section must update its count everywhere it's shown.
-
-## Part 2 — The like feature
-
-Each item has a like count. Users can tap a like button to increment it.
-
-Requirements:
-
-- The count is **persisted to the same backend** that serves the feed. Standard REST conventions apply.
-- The count must also **survive app restarts locally** — users shouldn't see counts blink to zero while we wait for the network on cold start.
-- The UI feels **instant** — no waiting on a round-trip before the number moves.
-- The like button has a **custom animation** on tap. We'll provide a Rive file from our design team.
-- Treat the backend as a real one: requests can be slow or fail. Design for it.
-
-## Part 3 — Tracking what the user saw
-
-When the feed screen mounts, fire **a single tracking event** that captures everything the user has been presented with on this screen view.
-
-The event should carry, at minimum: which items were rendered, which section each appeared in, the order they appeared in within each section, and any metadata that would help analytics make sense of this later (timestamp, session-ish identifier, whatever you think belongs).
-
-You don't need a real analytics backend. Log the event to the console or a local buffer — what matters is the shape of the data and where the event lives in your architecture, not where it's sent.
-
-## A note on design
-
-There's no design spec and no Figma. We're not evaluating visual polish — the three sections need to look *visibly different* from each other so the rendering architecture is doing real work, but beyond that, anything that doesn't embarrass you is fine.
-
-Use whatever gets you to a reasonable baseline quickly: Uniwind, NativeWind, StyleSheet, a UI kit, copy-paste from a previous project. Pick the path that costs you the least time. We use Uniwind on the team if you'd like to try it, but anything you're fastest with is fine. If you spend more than ~30 minutes thinking about styling, you're spending it on the wrong part of this case.
-
-## AI tooling
-
-We expect senior engineers to use AI assistants and want to understand how you work with them. In your README, add a short section covering:
-
-- Which tools you used (Claude Code, Cursor, Copilot, etc.) and on which parts of the case.
-- One moment where the AI clearly helped you ship faster or better.
-- One moment where you overrode, corrected, or rejected what it produced — and how you caught it.
-- Anything you deliberately wrote by hand and why.
-
-We're not looking for a specific ratio of AI-written vs. hand-written code. We want to see judgment.
-
-## Deliverable
-
-- A runnable RN project (Expo is fine, bare RN is fine).
-- A short README covering: how to run it, the architecture decisions you made, the libraries you chose and why, the AI tooling section above, and what you'd do differently with more time.
-
-## What we're evaluating
-
-- How you model the boundary between external data and internal types, especially when external sources don't agree with each other.
-- How you structure rendering so that "same data, different UI" stays maintainable.
-- How you reason about shared, persisted, optimistic state across a local cache and a remote backend.
-- How you handle pagination as a first-class concern of your data layer.
-- How you shape an analytics event — what's worth including, what isn't, and where the event-firing logic lives in your architecture.
-- Animation craft and integration choices.
-- Code clarity, naming, and the architecture story you can tell us about it.
-- How you collaborate with AI tools — both in the work you submit and live.
-- Pragmatism: what you chose to do well, and what you consciously chose not to do.
+For a detailed walkthrough of the code, see [`docs/TOUR.md`](./docs/TOUR.md). Deeper dives:
+[`docs/FEED_PROVIDERS.md`](./docs/FEED_PROVIDERS.md) (the provider pipeline) and
+[`docs/FEED_QUERIES.md`](./docs/FEED_QUERIES.md) (the featured and feed queries' lifecycle).
 
 ---
 
-## Getting started
+## How to run it
 
-### Prerequisites
-
-- Node.js **20 or later**
-- npm (or pnpm/yarn — examples below use npm)
-- Xcode (iOS simulator) or Android Studio (Android emulator). The app uses native modules (Rive, MMKV), so it runs as an Expo **development build**, not in Expo Go.
-
-### Install
+**Prerequisites:** Node 20+, Xcode **26.2 or newer** (required by Expo SDK 55) with an iOS
+simulator. The app uses native modules (Rive, MMKV, safe-area-context), so it runs as an Expo
+**development build**, not in Expo Go.
 
 ```bash
 npm install
-```
 
-### Run the backend
-
-In one terminal:
-
-```bash
+# terminal 1 — backend (json-server on http://localhost:3000)
 npm run server
+
+# terminal 2 — build and launch the dev build (first time, or after native dependency changes)
+npx expo run:ios
+
+# afterwards, serving JS changes to the installed app is enough
+npm start
+
+# unit tests (Jest, no device or backend needed)
+npm test
 ```
 
-This starts `json-server` on `http://localhost:3000`. Try it:
-
-```bash
-curl http://localhost:3000/provider-a?_page=1&_per_page=5
-curl http://localhost:3000/provider-b
-curl http://localhost:3000/provider-c
-curl http://localhost:3000/likes
-```
-
-### Run the app
-
-In another terminal, build and launch the development build (the first build takes a few minutes):
-
-```bash
-npx expo run:ios      # or: npx expo run:android
-```
-
-After the first build, `npm start` is enough to serve JavaScript changes to the installed app. Re-run `npx expo run:ios` whenever native dependencies change.
-
-> **Note on `localhost`:** on a physical device, `localhost` won't resolve to your machine. Either run on a simulator/emulator, or replace `localhost` in `src/app/config.ts` with your machine's LAN IP (e.g. `192.168.1.42`). For Android emulators, use `10.0.2.2`.
+- On a physical device, replace `localhost` in `src/app/config.ts` with your machine's LAN IP.
+- `json-server` writes likes back into `db.json`; those changes shouldn't be committed.
+- Verified on the iOS simulator. Android wasn't built or tested.
 
 ---
 
-## What's in this repo
+## Architecture decisions
+
+### Feature folders with explicit layers
 
 ```
-.
-├── db.json                  # json-server seed data (three provider shapes + likes)
-├── index.ts                 # Expo entry point
-├── src/
-│   ├── App.tsx              # root component
-│   ├── data/
-│   │   └── config.ts        # backend base URL
-│   └── screens/
-│       └── FeedScreen.tsx   # the screen you'll be building
-├── app.json                 # Expo config
-├── babel.config.js
-├── tsconfig.json
-└── package.json
+src/
+  app/        shared infrastructure: http client, zod field schemas, MMKV wrapper, query client, toast
+  shared/     domain-blind UI components (SnapCarousel)
+  features/
+    feed/     api/ → domain/ → view/ (section components in view/browse, view/discover, view/featured)
+    like/     api/ → domain/ → view/
 ```
 
-The repo is intentionally minimal. The `FeedScreen.tsx` is a placeholder — replace it with your implementation. Add folders, files, libraries, and tests as you see fit.
+- **api** is the only place that knows about raw provider schemas, endpoints, json-server quirks
+  and storage keys. It returns domain types only.
+- **domain** holds the internal model, business rules, TanStack Query definitions and the hooks
+  the view consumes (`useFeed`, `useLike`).
+- **view** only renders; it never fetches or transforms. Generic UI that knows nothing about the
+  domain lives in `shared/`.
 
-## Submitting
+### Normalizing at the boundary, per provider
 
-Push to a private repo and share access, or zip and email. Include:
+Each provider is **one Zod schema**: it validates the raw fields and `.transform`s them into a
+single `FeedItem`. The schema *is* the provider contract, so there is no separate raw type or
+hand-written normalizer to keep in sync. External data is never trusted:
 
-- Your code.
-- An updated README explaining how to run it, your architecture decisions, your library choices and why, the AI tooling section described above, and what you'd do differently with more time.
+- items missing an id, title, image, link, author or a **valid date** are dropped as malformed,
+  with Zod's reason logged in dev (`a-bad-1` null title, `b-no-media`, `c-9999` with
+  `"yesterday"`, impossible dates like `2026-02-31`);
+- the only optional field (`imageAlt`) falls back to `null` without dropping the item;
+- dates are strict per provider: ISO 8601 with offset for A, Unix seconds for B, `YYYY-MM-DD`
+  for C (built as a *local* date so it doesn't display a day early west of UTC);
+- provider C's numeric ids are namespaced (`c-3`) so ids are globally unique and match the likes
+  resource; duplicate ids (B's repeated `b-100`) are removed when building sections;
+- json-server's page envelope and the like records are validated too, not just feed items.
+
+### Pagination as a first-class data concern: "rounds"
+
+One "load more" fetches the next page of **every provider that still has one**, in parallel.
+Each provider keeps its own cursor; a provider that fails keeps its cursor and is retried on the
+next round, and the round only fails if every provider fails. Rounds are appended in order and
+items keep their fetch order, so **loading more never reorders rows already on screen**.
+Pull-to-refresh trims back to the first round before refetching. This is modelled as a single
+TanStack `infiniteQuery` whose page param is the cursor map.
+
+Every request has a 10 s timeout (a hung backend surfaces as an error instead of an endless
+spinner), and failed queries are retried once before the UI offers "Tap to retry".
+
+### Sections: same data, different UI
+
+- **Featured:** provider C items flagged as featured, fetched with a small server-side filtered
+  query (they rarely appear in the first pages), shown as a paged hero carousel with a dot
+  indicator. *(The brief says one card per row; I chose a carousel deliberately.)*
+- **Browse:** every non-featured item, in fetch order, as dense rows. This is the paginated list.
+- **Discover:** Browse items grouped by author (≥ 2 items), one author carousel slotted after
+  every 10 Browse rows, so Browse can keep growing at the bottom as pages load. An item can
+  appear in both Browse and Discover.
+
+The screen is **one virtualized `FlatList`** of typed rows (`header | featured | browse |
+discover`); `buildFeedRows` maps domain sections to rows and each row type maps to one component.
+Both carousels are thin wrappers around a shared, domain-blind `SnapCarousel`.
+Keeping section logic (domain) separate from row layout (view) is what keeps "same data,
+different UI" maintainable.
+
+### Likes: optimistic, persisted, reconciled
+
+The backend stores only an absolute `count` per item (no atomic increment, no per-user data), and
+json-server generates its own record id on POST. So:
+
+- The button is a **toggle with a count**; "liked by me" is device-local.
+- State per item is merged from three sources: server count + record id (query cache), confirmed
+  "liked by me" (persisted), and pending taps (in memory). The UI shows `pending ?? confirmed`,
+  so a tap is instant, a refetch never clobbers an optimistic tap, and a rollback is just
+  dropping the pending entry.
+- A small framework-free **sync engine** (`likesStore`) debounces writes (400 ms), keeps at most
+  one request in flight per item and only sends the final desired state. On failure it reverts
+  and shows a toast.
+- **No blink on cold start:** counts and liked flags are seeded from MMKV, then reconciled with
+  the server on launch. Only server-confirmed state is persisted.
+- The engine takes its dependencies by injection, so its tricky cases (rapid taps, taps during a
+  request, failures) are covered by unit tests without a device.
+
+### Tests
+
+A Jest suite (`jest-expo`, `npm test`) covers the pure logic where the risk is: provider schemas
+(run against the seed data, including the malformed entries), page fetching and envelope
+validation, pagination rounds, section building, the likes sync engine, and the analytics
+event's sections and deltas. Tests sit next to the code they cover (`*.test.ts`).
+
+### Tracking what the user saw
+
+`feed_presented` fires when the feed's content settles after the screen mounts, and again after
+pull-to-refresh, load more and "Tap to retry", with a `trigger` field telling them apart. It
+carries, per section, the ordered items (`position`, `itemId`, `provider`; Discover groups also
+carry their author and where they sit in the list), plus `sessionId`, `screenViewId`,
+`sequence`, timestamp, app version / platform, time since the screen mounted, and the providers
+that failed. `initial`/`refresh` carry the full layout; `load_more`/`retry` only what they newly
+presented, so nothing is double counted. Ids only, no content.
+
+It lives in the **feed's view layer**, on purpose: "what was presented" is defined by the row
+layout (where Discover carousels are slotted), so the event is built from the same rows the
+`FlatList` renders and can't drift from the screen. A pure function builds the sections; a small
+hook owns the screen view and decides when to fire. An `app/logger` (info / warn / error) is the
+transport, and also records malformed items and provider failures where they happen.
+
+### Animation driven by state
+
+The Rive view is non-interactive; a `Pressable` handles the tap and the optimistic `isLiked` is
+bound to the file's `MainVM.isActive` view-model property. The animation therefore mirrors the
+state, including rollbacks, and can't desync from it. The `.riv` file is loaded once for the app
+and shared through context.
+
+---
+
+## Libraries and why
+
+| Library | Why |
+|---|---|
+| **TanStack Query v5** | Already in the starter. Caching, request dedup, infinite queries for pagination, `initialData` seeding for the MMKV cache, and a query cache the likes engine can read and update. |
+| **react-native-mmkv** | Synchronous reads at startup, so cached like counts render on the first frame (no blink to zero). Fast and small. |
+| **@rive-app/react-native** | The current (Nitro-based) Rive runtime, which supports view-model data binding — needed to drive `isActive` from our state rather than from Rive's own tap handling. |
+| **expo-dev-client** | Rive and MMKV are native modules, so Expo Go isn't an option. |
+| **React Compiler** | Automatic memoization; no manual `memo` / `useMemo` / `useCallback` in the codebase. |
+| **StyleSheet (no UI kit)** | Fastest path to three visibly different sections without adding a styling dependency. |
+| **Zod 4** | The case is about the external/internal boundary: a schema per provider is both the contract and the validation, transforms normalize in place, and failures explain *why* an item was dropped. Built-ins like `z.iso.date()` replaced hand-written date checks. |
+| **expo-constants** | App version for the analytics event; already part of Expo's native build. |
+| **react-native-safe-area-context** | Real safe-area insets for the screen top and the toast, instead of hardcoded offsets. |
+| **Custom toast** | A small store + animated host (~100 lines), no dependency, lives in `app/` as shared infrastructure. |
+
+---
+
+## AI tooling
+
+**Tools.** Claude Code, in the terminal, across the whole case: reading the brief and the data,
+designing and implementing the feed and like features, code review, debugging the native build
+and the Rive integration, restructuring the architecture, and writing these docs.
+
+**Where it clearly helped me ship faster or better.**
+- *First version of the feed.* It produced the initial feed screen, sections and item components
+  very quickly, and I barely had to touch that first design. Building the feed and its items by
+  hand would have taken me a good while.
+- *The feed query system.* It proposed the design for querying and paginating the three
+  providers: per-provider cursors, "rounds" fetched in parallel, a failed provider keeping its
+  cursor, and rounds stored as the pages of one infinite query. Designing that myself would have
+  taken much longer, and the result (with a few tweaks from me) is better than what I would have
+  come up with.
+- *Debugging the Rive animation.* Taps updated the like state but the heart didn't animate, with
+  no error. The AI confirmed the taps reached the backend, then read the Rive runtime's native iOS
+  source and found that view-model property changes don't wake a state machine that has settled
+  (only legacy inputs call `playIfNeeded()`). A one-line fix.
+- *Backend quirks.* While testing, it found that json-server ignores the `id` sent on POST, which
+  would have broken updates to newly created like records; the model now tracks record ids.
+- *Code review.* A review pass caught a real bug (the footer said "You're all caught up." while
+  the feed was still loading or had failed) and a timezone bug in provider C's dates.
+- *Project documentation.* It wrote the project docs in `docs/` (`TOUR.md`, `FEED_PROVIDERS.md`,
+  `FEED_QUERIES.md`), which helped me understand the choices it made on the more complex parts of
+  the code quickly and adapt.
+
+**Where I overrode, corrected or rejected what it produced — and how I caught it.**
+- *Feed ordering.* It sorted the merged feed by date and then had to invent "rounds" sorting to
+  keep appends stable. I didn't want sorting at all: items are shown in fetch order.
+- *Malformed data.* It kept items with unparseable dates (`publishedAt: null`). I decided a bad
+  date makes an item malformed and had it dropped.
+- *Product rules it couldn't infer.* I defined the section rules (C's `section_hint`, where
+  A/B items go), the author-based Discover section and its placement every 10 Browse items, and
+  chose a carousel with an indicator for Featured.
+- *Rive on mount.* I noticed the like animation and sound play when an already-liked item mounts.
+  The AI checked the file and the runtime API and showed it can't be fixed client-side (no seek or
+  mute; the file only reaches "liked" through the animation). I chose to keep it and raise it with
+  design rather than accept a hacky workaround.
+- *File architecture.* The AI organized the code by technical layer across the whole app:
+  `data/`, `domain/`, `queries/`, `features/`, `components/`, `screens/`. Each feature ended up
+  spread over six top-level folders, and the boundaries were blurry: fetching lived in `data/`,
+  query definitions in `queries/`, business hooks in `features/`, and shared code such as the HTTP
+  client sat inside a provider folder. I caught it when reviewing the architecture as a whole
+  before moving on, and replaced it with a feature-first layout:
+  `app/` for shared infrastructure (HTTP, parsing, MMKV, query client, toast) and
+  `features/{feed,like}/{api,domain,view}`. Everything about a feature is now in one place, and
+  the api → domain → view dependency direction is visible from the folder structure. I also
+  decided where the ambiguous pieces belong: shared code and the toast go in `app/`, Rive stays
+  in `like/view` because only the like button uses it, and the reference fixtures move out of
+  `src`.
+- *Pair review of the whole codebase.* I reviewed every file with the AI, piece by piece, asking
+  it to explain and challenge the code, and only accepting edits I agreed with. That's where I
+  replaced its hand-written runtime guards with Zod, made author and media required (items
+  without them are malformed), created `src/shared` for domain-blind UI, pushed for
+  self-explanatory names over comments, and turned down changes I judged not worth it for the
+  exercise (e.g. schema-validating MMKV reads, refetch-on-focus).
+
+**What I deliberately wrote by hand, and why.**
+The final styling of the like button (pill background, colors) and cards,
+which I tuned by eye in the simulator, these were small tweaks that were
+easier to do by hand than explaining to Claude
+
+---
+
+## What I'd do differently with more time
+
+- **Tests.** Extend the unit suite with React Native Testing Library tests for the screen states
+  (loading, partial failure, end of feed, retry) and the tracking hook's triggers, and run
+  type-check and tests in CI.
+- **Linting and formatting.** Add ESLint (Expo config plus the React hooks and React Compiler
+  rules) and Prettier (quotes, line width, import ordering), run on save and in a pre-commit
+  hook. Several style decisions I made by hand during the review (double quotes, grouped
+  imports, inline props for small components) would then be enforced automatically, and the
+  code would look cohesive no matter who, or which tool, wrote it.
+- **List performance.** Try FlashList for the mixed-layout list and `expo-image` for image
+  caching, and measure on a low-end Android device.
+- **Android.** Build and test it (only iOS was verified).
