@@ -107,7 +107,7 @@ We're not looking for a specific ratio of AI-written vs. hand-written code. We w
 
 - Node.js **20 or later**
 - npm (or pnpm/yarn — examples below use npm)
-- For running on a device: the **Expo Go** app, or a local iOS simulator / Android emulator
+- Xcode (iOS simulator) or Android Studio (Android emulator). The app uses native modules (Rive, MMKV), so it runs as an Expo **development build**, not in Expo Go.
 
 ### Install
 
@@ -134,15 +134,15 @@ curl http://localhost:3000/likes
 
 ### Run the app
 
-In another terminal:
+In another terminal, build and launch the development build (the first build takes a few minutes):
 
 ```bash
-npm start
+npx expo run:ios      # or: npx expo run:android
 ```
 
-Then press `i` for iOS, `a` for Android, or scan the QR code with Expo Go.
+After the first build, `npm start` is enough to serve JavaScript changes to the installed app. Re-run `npx expo run:ios` whenever native dependencies change.
 
-> **Note on `localhost`:** on a physical device, `localhost` won't resolve to your machine. Either run on a simulator/emulator, or replace `localhost` in `src/data/config.ts` with your machine's LAN IP (e.g. `192.168.1.42`). For Android emulators, use `10.0.2.2`.
+> **Note on `localhost`:** on a physical device, `localhost` won't resolve to your machine. Either run on a simulator/emulator, or replace `localhost` in `src/app/config.ts` with your machine's LAN IP (e.g. `192.168.1.42`). For Android emulators, use `10.0.2.2`.
 
 ---
 

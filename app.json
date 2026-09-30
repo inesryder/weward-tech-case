@@ -6,7 +6,8 @@
     "orientation": "portrait",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.inesryder.feed-case"
     },
     "android": {
       "adaptiveIcon": {
@@ -15,6 +16,12 @@
     },
     "web": {
       "bundler": "metro"
+    },
+    "plugins": [
+      "./plugins/withPodsMinDeploymentTarget"
+    ],
+    "experiments": {
+      "reactCompiler": true
     }
   }
 }
