@@ -29,11 +29,7 @@ function DiscoverCard({ item }: { item: FeedItem }) {
   );
 }
 
-type Props = {
-  items: readonly FeedItem[];
-};
-
-export function DiscoverCarousel({ items }: Props) {
+export function DiscoverCarousel({ items }: { items: FeedItem[] }) {
   return (
     <SnapCarousel
       items={items}

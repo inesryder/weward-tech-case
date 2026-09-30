@@ -3,11 +3,7 @@ import { FeedItem } from "../../domain/FeedItem";
 import { LikeButton } from "../../../like/view/LikeButton";
 import { ProviderLabel } from "../ProviderLabel";
 
-type Props = {
-  item: FeedItem;
-};
-
-export function FeaturedCard({ item }: Props) {
+export function FeaturedCard({ item }: { item: FeedItem }) {
   return (
     <View style={styles.card}>
       <Image

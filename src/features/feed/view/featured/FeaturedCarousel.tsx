@@ -4,11 +4,7 @@ import { CAROUSEL_PADDING, SnapCarousel } from "../../../../shared/SnapCarousel"
 import { FeedItem } from "../../domain/FeedItem";
 import { FeaturedCard } from "./FeaturedCard";
 
-type Props = {
-  items: readonly FeedItem[];
-};
-
-export function FeaturedCarousel({ items }: Props) {
+export function FeaturedCarousel({ items }: { items: FeedItem[] }) {
   const { width: screenWidth } = useWindowDimensions();
   const [activeIndex, setActiveIndex] = useState(0);
 

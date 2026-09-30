@@ -19,11 +19,7 @@ const IS_ACTIVE = "isActive";
 
 const ICON_SIZE = 32;
 
-type Props = {
-  itemId: string;
-};
-
-export function LikeButton({ itemId }: Props) {
+export function LikeButton({ itemId }: { itemId: string }) {
   const { count, isLiked, toggle } = useLike(itemId);
   const riveFile = useLikeAnimationFile();
 

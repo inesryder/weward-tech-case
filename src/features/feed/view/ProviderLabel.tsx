@@ -7,11 +7,7 @@ export const PROVIDER_LABELS: Record<ProviderId, string> = {
   "provider-c": "Provider C",
 };
 
-type Props = {
-  provider: ProviderId;
-};
-
-export function ProviderLabel({ provider }: Props) {
+export function ProviderLabel({ provider }: { provider: ProviderId }) {
   return <Text style={styles.label}>{PROVIDER_LABELS[provider]}</Text>;
 }
 
